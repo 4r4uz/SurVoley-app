@@ -1,67 +1,30 @@
-# ========================================
-# Node / React / Expo
-# ========================================
+# Node
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-pnpm-lock.yaml
 
-# Metro bundler cache
+# Expo
 .expo/
 .expo-shared/
-.expo-dev/
-
-# React Native / Expo build artifacts
-android/
-ios/
-web-build/
 dist/
-build/
+web-build/
 
-# ========================================
-# Environment variables & config
-# ========================================
+# Environment
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.development
+.env.production
+.env.test
 
-# Supabase generated files (local keys, config, etc.)
-supabase/.branches/
-supabase/.temp/
-supabase/.cache/
-supabase/.output/
-.supabase
-
-# ========================================
-# IDE / OS files
-# ========================================
+# VS Code / Dev Containers
 .vscode/
-.idea/
-*.iml
-*.swp
+.devcontainer/.cache/
+
+# OS
 .DS_Store
 Thumbs.db
 
-# ========================================
-# Testing / Coverage
-# ========================================
-coverage/
-jest-cache/
-jest-test-results.json
-
-# ========================================
-# Misc
-# ========================================
+# Logs
+logs/
 *.log
-*.lock
-*.tmp
-*.bak
-*.orig
-*.pid
-*.seed
-*.seed.json
-*.log.*seed
