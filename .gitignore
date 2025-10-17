@@ -12,10 +12,6 @@ web-build/
 
 # Environment
 .env
-.env.local
-.env.development
-.env.production
-.env.test
 
 # VS Code / Dev Containers
 .vscode/
