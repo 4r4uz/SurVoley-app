@@ -1,4 +1,4 @@
-# Proyecto Expo + Supabase
+# Proyecto Expo + Supabase --> memoria para yo, recuerda volver a acivar RLS
 
 Aplicación móvil desarrollada con **React Native (Expo)** y **Supabase** como backend.
 
