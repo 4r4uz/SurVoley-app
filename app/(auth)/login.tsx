@@ -12,6 +12,7 @@ import {
   ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
+  Image,
 } from "react-native";
 import { supabase } from "../../supabase/supabaseClient";
 import { useAuth } from "../../types/use.auth";
@@ -95,7 +96,7 @@ const LoginScreen: React.FC = () => {
     if (!validateForm()) {
       return;
     }
-44
+    44;
     setLoading(true);
 
     try {
@@ -190,15 +191,20 @@ const LoginScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>
-              <View style={styles.logoContainer}>
+              <View>
+                {/* 
                 <Ionicons name="basketball" size={42} color="#fff" />
+                */}
+                <Image
+                  source={require("../../assets/icon.png")}
+                  resizeMode="contain"
+                  style={styles.logoContainer}
+                />
               </View>
               <Text style={styles.title}>SURVOLEY</Text>
               <Text style={styles.subtitle}>Inicia sesión en tu cuenta</Text>
             </View>
             <View style={styles.formContainer}>
-              <Text style={styles.formTitle}>Bienvenido de vuelta</Text>
-
               {/* Email Input */}
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Correo electrónico</Text>
@@ -397,13 +403,13 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   logoContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 6,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.2)",
   },
@@ -423,7 +429,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     margin: 20,
     marginTop: -20,
-    padding: 22,
+    padding: 18,
     borderRadius: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
@@ -473,8 +479,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   rememberMeContainer: {
-    marginBottom: 20,
-    padding: 12,
+    marginBottom: 10,
+    padding: 10,
     backgroundColor: "#f8f9fa",
     borderRadius: 12,
     borderWidth: 1,

@@ -11,7 +11,7 @@ interface SafeLayoutProps {
 
 export default function SafeLayout({
   children,
-  backgroundColor = "#f8fafc",
+  backgroundColor = "#f8fafc77",
   edges = ["top", "right", "bottom", "left"],
   headerBackgroundColor,
 }: SafeLayoutProps) {
