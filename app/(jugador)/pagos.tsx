@@ -37,7 +37,13 @@ const StatsCard = ({ icon, value, label, color }: any) => (
   </View>
 );
 
-const PaymentCard = ({ item, onPay }: { item: Mensualidad; onPay: (item: Mensualidad) => void }) => {
+const PaymentCard = ({
+  item,
+  onPay,
+}: {
+  item: Mensualidad;
+  onPay: (item: Mensualidad) => void;
+}) => {
   const formatearMonto = (monto: number) => {
     return `$${monto.toLocaleString("es-CL")}`;
   };
@@ -54,19 +60,32 @@ const PaymentCard = ({ item, onPay }: { item: Mensualidad; onPay: (item: Mensual
 
   const obtenerNombreMes = (mes: string) => {
     const meses: { [key: string]: string } = {
-      "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
-      "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
-      "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre",
+      "01": "Enero",
+      "02": "Febrero",
+      "03": "Marzo",
+      "04": "Abril",
+      "05": "Mayo",
+      "06": "Junio",
+      "07": "Julio",
+      "08": "Agosto",
+      "09": "Septiembre",
+      "10": "Octubre",
+      "11": "Noviembre",
+      "12": "Diciembre",
     };
     return meses[mes] || mes;
   };
 
   const getStatusColor = (estado: string) => {
     switch (estado) {
-      case "Pagado": return { color: "#2ecc71", icon: "checkmark-circle" };
-      case "Pendiente": return { color: "#e74c3c", icon: "time" };
-      case "Cancelado": return { color: "#95a5a6", icon: "close-circle" };
-      default: return { color: "#95a5a6", icon: "help-circle" };
+      case "Pagado":
+        return { color: "#2ecc71", icon: "checkmark-circle" };
+      case "Pendiente":
+        return { color: "#e74c3c", icon: "time" };
+      case "Cancelado":
+        return { color: "#95a5a6", icon: "close-circle" };
+      default:
+        return { color: "#95a5a6", icon: "help-circle" };
     }
   };
 
@@ -101,9 +120,7 @@ const PaymentCard = ({ item, onPay }: { item: Mensualidad; onPay: (item: Mensual
       <View style={styles.cardContent}>
         <View style={styles.paymentInfo}>
           <Ionicons name="cash" size={14} color="#666" />
-          <Text style={styles.paymentText}>
-            {formatearMonto(item.monto)}
-          </Text>
+          <Text style={styles.paymentText}>{formatearMonto(item.monto)}</Text>
         </View>
         <View style={styles.paymentInfo}>
           <Ionicons name="time" size={14} color="#666" />
@@ -122,18 +139,13 @@ const PaymentCard = ({ item, onPay }: { item: Mensualidad; onPay: (item: Mensual
         {item.metodo_pago && (
           <View style={styles.paymentInfo}>
             <Ionicons name="card" size={14} color="#666" />
-            <Text style={styles.paymentText}>
-              {item.metodo_pago}
-            </Text>
+            <Text style={styles.paymentText}>{item.metodo_pago}</Text>
           </View>
         )}
       </View>
 
       {item.estado_pago === "Pendiente" && (
-        <TouchableOpacity
-          style={styles.payButton}
-          onPress={() => onPay(item)}
-        >
+        <TouchableOpacity style={styles.payButton} onPress={() => onPay(item)}>
           <Ionicons name="card" size={16} color="#fff" />
           <Text style={styles.payButtonText}>Pagar Ahora</Text>
         </TouchableOpacity>
@@ -196,7 +208,11 @@ const PagosScreen = () => {
 
       Alert.alert(
         "Confirmar Pago",
-        `¿Estás seguro que deseas pagar la mensualidad de ${mensualidad.mes_referencia}/${mensualidad.anio_referencia} por $${mensualidad.monto.toLocaleString("es-CL")}?`,
+        `¿Estás seguro que deseas pagar la mensualidad de ${
+          mensualidad.mes_referencia
+        }/${
+          mensualidad.anio_referencia
+        } por $${mensualidad.monto.toLocaleString("es-CL")}?`,
         [
           { text: "Cancelar", style: "cancel" },
           {
@@ -231,8 +247,12 @@ const PagosScreen = () => {
 
   const calcularResumen = () => {
     const total = mensualidades.length;
-    const pagados = mensualidades.filter((m) => m.estado_pago === "Pagado").length;
-    const pendientes = mensualidades.filter((m) => m.estado_pago === "Pendiente").length;
+    const pagados = mensualidades.filter(
+      (m) => m.estado_pago === "Pagado"
+    ).length;
+    const pendientes = mensualidades.filter(
+      (m) => m.estado_pago === "Pendiente"
+    ).length;
     const totalPagado = mensualidades
       .filter((m) => m.estado_pago === "Pagado")
       .reduce((sum, m) => sum + m.monto, 0);
@@ -268,7 +288,11 @@ const PagosScreen = () => {
           <View style={styles.loadingContent}>
             <Ionicons name="card" size={60} color="#3f3db8ff" />
             <Text style={styles.loadingText}>Cargando pagos...</Text>
-            <ActivityIndicator size="large" color="#3f3db8ff" style={styles.loadingSpinner} />
+            <ActivityIndicator
+              size="large"
+              color="#3f3db8ff"
+              style={styles.loadingSpinner}
+            />
           </View>
         </View>
       </View>
@@ -328,7 +352,7 @@ const PagosScreen = () => {
               color="#e74c3c"
             />
           </View>
-          
+
           <View style={styles.amountsContainer}>
             <View style={styles.amountItem}>
               <Ionicons name="trending-up" size={16} color="#2ecc71" />
@@ -363,19 +387,20 @@ const PagosScreen = () => {
               <Text style={styles.emptyStateText}>
                 No hay mensualidades registradas
               </Text>
-              <Text style={[styles.emptyStateText, { fontSize: 14, marginTop: 5 }]}>
-                {user?.rol === "jugador" 
-                  ? "Las mensualidades se generan automáticamente cada mes" 
-                  : "No hay mensualidades asignadas a este usuario"
-                }
+              <Text
+                style={[styles.emptyStateText, { fontSize: 14, marginTop: 5 }]}
+              >
+                {user?.rol === "jugador"
+                  ? "Las mensualidades se generan automáticamente cada mes"
+                  : "No hay mensualidades asignadas a este usuario"}
               </Text>
             </View>
           ) : (
             mensualidades.map((item) => (
-              <PaymentCard 
-                key={item.id_mensualidad} 
-                item={item} 
-                onPay={procesarPago} 
+              <PaymentCard
+                key={item.id_mensualidad}
+                item={item}
+                onPay={procesarPago}
               />
             ))
           )}
