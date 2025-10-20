@@ -22,7 +22,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <SafeLayout>
+      <SafeLayout edges={['right','left']}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(admin)" />
