@@ -15,9 +15,10 @@ export interface AuthState {
 export interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export type UseAuthReturn = AuthState & { 
   signOut: () => Promise<void>;
-  setUser?: (user: User) => Promise<void>;
+  setUser?: (user: User, rememberMe?: boolean) => Promise<void>;
 };

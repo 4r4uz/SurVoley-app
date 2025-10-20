@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   RefreshControl,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../types/use.auth";
@@ -299,6 +300,7 @@ export default function MiAsistenciaScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAllRecords, setShowAllRecords] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -426,14 +428,24 @@ export default function MiAsistenciaScreen() {
     fetchUserData();
   };
 
-  const totalSessions = attendanceData.length;
-  const presentSessions = attendanceData.filter(
+  const toggleShowAllRecords = () => {
+    setShowAllRecords(!showAllRecords);
+  };
+
+  const relevantAttendanceData = attendanceData.filter(
+    (item) => item.estado_asistencia !== "Sin registro"
+  );
+
+  const historyData = relevantAttendanceData;
+
+  const totalSessions = relevantAttendanceData.length;
+  const presentSessions = relevantAttendanceData.filter(
     (item) => item.estado_asistencia === "Presente"
   ).length;
-  const absentSessions = attendanceData.filter(
+  const absentSessions = relevantAttendanceData.filter(
     (item) => item.estado_asistencia === "Ausente"
   ).length;
-  const justifiedSessions = attendanceData.filter(
+  const justifiedSessions = relevantAttendanceData.filter(
     (item) => item.estado_asistencia === "Justificado"
   ).length;
   const noRecordSessions = attendanceData.filter(
@@ -442,6 +454,12 @@ export default function MiAsistenciaScreen() {
 
   const attendanceRate =
     totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+
+  const displayedRecords = showAllRecords
+    ? historyData
+    : historyData.slice(0, 3);
+
+  const hasMoreRecords = historyData.length > 3;
 
   if (loading) {
     return (
@@ -570,12 +588,14 @@ export default function MiAsistenciaScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mi Historial</Text>
-            {totalSessions > 0 && (
-              <Text style={styles.sessionCount}>{totalSessions} sesiones</Text>
+            {historyData.length > 0 && ( 
+              <Text style={styles.sessionCount}>
+                {historyData.length} sesiones registradas
+              </Text>
             )}
           </View>
 
-          {attendanceData.length === 0 ? (
+          {historyData.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="calendar-outline" size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>
@@ -588,9 +608,33 @@ export default function MiAsistenciaScreen() {
               </Text>
             </View>
           ) : (
-            attendanceData.map((item) => (
-              <AttendanceCard key={item.id} item={item} />
-            ))
+            <>
+              {displayedRecords.map((item) => (
+                <AttendanceCard key={item.id} item={item} />
+              ))}
+
+              {hasMoreRecords && !showAllRecords && (
+                <TouchableOpacity
+                  style={styles.viewMoreButton}
+                  onPress={toggleShowAllRecords}
+                >
+                  <Text style={styles.viewMoreText}>
+                    Ver más ({historyData.length - 3} restantes){" "}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#3f3db8ff" />
+                </TouchableOpacity>
+              )}
+
+              {showAllRecords && hasMoreRecords && (
+                <TouchableOpacity
+                  style={styles.viewMoreButton}
+                  onPress={toggleShowAllRecords}
+                >
+                  <Text style={styles.viewMoreText}>Ver menos</Text>
+                  <Ionicons name="chevron-up" size={16} color="#3f3db8ff" />
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -606,7 +650,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#3f3db8ff",
     padding: 25,
-    paddingTop: 60,
+    paddingTop: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     flexDirection: "row",
@@ -894,5 +938,27 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 10,
     textAlign: "center",
+  },
+  viewMoreButton: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 15,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#ecf0f1",
+  },
+  viewMoreText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3f3db8ff",
+    marginRight: 8,
   },
 });

@@ -205,11 +205,6 @@ export default function JugadorHome() {
                       <Text style={styles.eventLocationText}>{event.lugar}</Text>
                     </View>
                   </View>
-                  
-                  <View style={styles.eventIndicator}>
-                    <View style={[styles.eventDot, { backgroundColor: eventColor }]} />
-                    {index < nextEvents.length - 1 && <View style={styles.eventLine} />}
-                  </View>
                 </TouchableOpacity>
               );
             })
@@ -247,24 +242,24 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#3f3db8ff",
-    padding: 25,
-    paddingTop: 50,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    padding: 20,
+    paddingTop: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     alignItems: 'center',
     shadowColor: "#3f3db8ff",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   avatarContainer: {
-    marginBottom: 15,
+    marginBottom: 12,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -272,22 +267,22 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
   },
   welcome: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
     color: "white",
     textAlign: "center",
-    marginBottom: 5,
+    marginBottom: 4,
   },
   userInfo: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   roleBadge: {
     flexDirection: 'row',
@@ -366,7 +361,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   eventTime: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#666",
     fontWeight: "500",
   },
@@ -389,17 +384,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 10,
   },
-  eventDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  eventLine: {
-    width: 1,
-    height: 30,
-    backgroundColor: "#e0e0e0",
-    marginTop: 2,
-  },
+
   loadingContainer: {
     backgroundColor: "white",
     padding: 30,

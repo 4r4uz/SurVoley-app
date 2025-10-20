@@ -17,6 +17,11 @@ import { supabase } from "../../supabase/supabaseClient";
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import BouncyCheckbox from "react-native-bouncy-checkbox";
+interface ValidationErrors {
+  email?: string;
+  password?: string;
+}
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -24,14 +29,18 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {}
+  );
+  const [rememberMe, setRememberMe] = useState(false);
   const { user, isAuthenticated, setUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const keyboardDidShow = Keyboard.addListener('keyboardDidShow', () => {
+    const keyboardDidShow = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
     });
-    const keyboardDidHide = Keyboard.addListener('keyboardDidHide', () => {
+    const keyboardDidHide = Keyboard.addListener("keyboardDidHide", () => {
       setKeyboardVisible(false);
     });
 
@@ -47,44 +56,71 @@ const LoginScreen: React.FC = () => {
         admin: "/(admin)",
         jugador: "/(jugador)",
         apoderado: "/(apoderado)",
-        entrenador: "/(entrenador)"
+        entrenador: "/(entrenador)",
       };
-      router.replace(routeMap[user.rol as keyof typeof routeMap] || "/(jugador)");
+
+      const timer = setTimeout(() => {
+        router.replace(
+          routeMap[user.rol as keyof typeof routeMap] || "/(jugador)"
+        );
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, user]);
 
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    if (!email.trim()) {
+      errors.email = "El email es requerido";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = "Por favor ingresa un email válido";
+    }
+
+    if (!password) {
+      errors.password = "La contraseña es requerida";
+    } else if (password.length < 4) {
+      errors.password = "La contraseña debe tener al menos 4 caracteres";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleLogin = async (): Promise<void> => {
     Keyboard.dismiss();
-    
-    if (!email || !password) {
-      Alert.alert("Error", "Por favor completa todos los campos");
+    setValidationErrors({});
+
+    if (!validateForm()) {
       return;
     }
-
-    if (!email.includes("@")) {
-      Alert.alert("Error", "Por favor ingresa un email válido");
-      return;
-    }
-
+44
     setLoading(true);
 
     try {
       const { data: users, error } = await supabase
         .from("Usuarios")
-        .select("*")
+        .select(
+          "id_usuario, correo, rol, nombre, apellido, estado_cuenta, password"
+        )
         .eq("correo", email.trim().toLowerCase())
-        .eq("contraseña", password)
-        .eq("estado_cuenta", true);
+        .eq("estado_cuenta", true)
+        .limit(1);
 
       if (error) {
-        throw new Error("Error de conexión con el servidor");
+        throw new Error("DATABASE_ERROR");
       }
 
       if (!users || users.length === 0) {
-        throw new Error("Credenciales incorrectas o usuario inactivo");
+        throw new Error("EMAIL_NOT_FOUND");
       }
 
       const userData = users[0];
+
+      if (userData.password !== password) {
+        throw new Error("INVALID_PASSWORD");
+      }
 
       const user = {
         id: userData.id_usuario,
@@ -95,10 +131,39 @@ const LoginScreen: React.FC = () => {
       };
 
       if (setUser) {
-        await setUser(user);
+        await setUser(user, rememberMe);
+      } else {
+        throw new Error("SESSION_ERROR");
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Error al iniciar sesión");
+      const errorMessages: {
+        [key: string]: { message: string; field?: string };
+      } = {
+        EMAIL_NOT_FOUND: {
+          message: "El email no encontrado",
+          field: "email",
+        },
+        INVALID_PASSWORD: {
+          message: "La contraseña es incorrecta",
+          field: "password",
+        },
+        DATABASE_ERROR: {
+          message: "Error de conexión con el servidor",
+        },
+        SESSION_ERROR: {
+          message: "Error al iniciar sesión",
+        },
+      };
+
+      const errorConfig = errorMessages[error.message] || {
+        message: "Error desconocido",
+      };
+
+      if (errorConfig.field) {
+        setValidationErrors({ [errorConfig.field]: errorConfig.message });
+      } else {
+        Alert.alert("Error", errorConfig.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -108,6 +173,10 @@ const LoginScreen: React.FC = () => {
     Keyboard.dismiss();
   };
 
+  const handleSubmit = () => {
+    handleLogin();
+  };
+
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
@@ -115,12 +184,11 @@ const LoginScreen: React.FC = () => {
           style={styles.keyboardAvoid}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContainer}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Header */}
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Ionicons name="basketball" size={42} color="#fff" />
@@ -128,49 +196,89 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.title}>SURVOLEY</Text>
               <Text style={styles.subtitle}>Inicia sesión en tu cuenta</Text>
             </View>
-
-            {/* Form Container */}
             <View style={styles.formContainer}>
               <Text style={styles.formTitle}>Bienvenido de vuelta</Text>
-              
+
               {/* Email Input */}
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Correo electrónico</Text>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="mail-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+                <View
+                  style={[
+                    styles.inputContainer,
+                    validationErrors.email && styles.inputError,
+                  ]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={validationErrors.email ? "#ef4444" : "#6b7280"}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="tu@email.com"
                     placeholderTextColor="#9ca3af"
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      if (validationErrors.email) {
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          email: undefined,
+                        }));
+                      }
+                    }}
                     autoCapitalize="none"
                     keyboardType="email-address"
                     autoComplete="email"
                     returnKeyType="next"
+                    editable={!loading}
                   />
                 </View>
+                {validationErrors.email && (
+                  <Text style={styles.errorText}>{validationErrors.email}</Text>
+                )}
               </View>
 
               {/* Password Input */}
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Contraseña</Text>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+                <View
+                  style={[
+                    styles.inputContainer,
+                    validationErrors.password && styles.inputError,
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={validationErrors.password ? "#ef4444" : "#6b7280"}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     style={styles.input}
                     placeholder="••••••••"
                     placeholderTextColor="#9ca3af"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      if (validationErrors.password) {
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          password: undefined,
+                        }));
+                      }
+                    }}
                     secureTextEntry={!showPassword}
                     autoComplete="password"
                     returnKeyType="done"
-                    onSubmitEditing={handleLogin}
+                    onSubmitEditing={handleSubmit}
+                    editable={!loading}
                   />
                   <TouchableOpacity
                     style={styles.eyeIcon}
                     onPress={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     <Ionicons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -179,12 +287,39 @@ const LoginScreen: React.FC = () => {
                     />
                   </TouchableOpacity>
                 </View>
+                {validationErrors.password && (
+                  <Text style={styles.errorText}>
+                    {validationErrors.password}
+                  </Text>
+                )}
+              </View>
+
+              {/* Recordarme Checkbox */}
+              <View style={styles.rememberMeContainer}>
+                <BouncyCheckbox
+                  size={20}
+                  fillColor="#3f3db8ff"
+                  unFillColor="#FFFFFF"
+                  text="Mantener sesión iniciada"
+                  iconStyle={{ borderColor: "#3f3db8ff", borderRadius: 4 }}
+                  innerIconStyle={{ borderWidth: 1.5, borderRadius: 4 }}
+                  textStyle={{
+                    fontFamily: "System",
+                    fontSize: 14,
+                    color: "#374151",
+                    textDecorationLine: "none",
+                  }}
+                  isChecked={rememberMe}
+                  useBuiltInState
+                  onPress={(isChecked: boolean) => setRememberMe(isChecked)}
+                  disabled={loading}
+                />
               </View>
 
               {/* Login Button */}
               <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
+                onPress={handleSubmit}
                 disabled={loading}
                 activeOpacity={0.8}
               >
@@ -198,20 +333,26 @@ const LoginScreen: React.FC = () => {
                 )}
               </TouchableOpacity>
 
-              {/* Demo Credentials - Estilo original */}
+              {/* Demo Credentials */}
               <View style={styles.demoContainer}>
                 <Text style={styles.demoTitle}>Credenciales de Prueba</Text>
                 <View style={styles.demoItem}>
                   <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>jugador@survoley.cl / jugador</Text>
+                  <Text style={styles.demoText}>
+                    jugador@survoley.cl / jugador
+                  </Text>
                 </View>
                 <View style={styles.demoItem}>
                   <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>entrenador@survoley.cl / entrenador</Text>
+                  <Text style={styles.demoText}>
+                    entrenador@survoley.cl / entrenador
+                  </Text>
                 </View>
                 <View style={styles.demoItem}>
                   <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>apoderado@survoley.cl / apoderado</Text>
+                  <Text style={styles.demoText}>
+                    apoderado@survoley.cl / apoderado
+                  </Text>
                 </View>
                 <View style={styles.demoItem}>
                   <Ionicons name="person" size={14} color="#3f3db8ff" />
@@ -243,7 +384,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#3f3db8ff",
-    paddingVertical: 42,
+    paddingVertical: 40,
     paddingHorizontal: 30,
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
@@ -253,6 +394,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 20,
     elevation: 15,
+    marginTop: 0,
   },
   logoContainer: {
     width: 70,
@@ -281,7 +423,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     margin: 20,
     marginTop: -20,
-    padding: 28,
+    padding: 22,
     borderRadius: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
@@ -314,6 +456,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#e5e7eb",
   },
+  inputError: {
+    borderColor: "#ef4444",
+  },
   inputIcon: {
     padding: 16,
   },
@@ -327,6 +472,15 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 16,
   },
+  rememberMeContainer: {
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+
   button: {
     backgroundColor: "#3f3db8ff",
     padding: 18,
@@ -385,6 +539,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     marginTop: 8,
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
 });
 

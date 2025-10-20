@@ -7,9 +7,14 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  RefreshControl,
+  Dimensions,
 } from "react-native";
 import { supabase } from "../../supabase/supabaseClient";
 import { useAuth } from "../../types/use.auth";
+import { Ionicons } from "@expo/vector-icons";
+
+const { width } = Dimensions.get("window");
 
 interface Mensualidad {
   id_mensualidad: string;
@@ -22,15 +27,130 @@ interface Mensualidad {
   anio_referencia: number;
 }
 
+const StatsCard = ({ icon, value, label, color }: any) => (
+  <View style={styles.statsCard}>
+    <View style={[styles.statsIcon, { backgroundColor: color }]}>
+      <Ionicons name={icon} size={20} color="#fff" />
+    </View>
+    <Text style={styles.statsValue}>{value}</Text>
+    <Text style={styles.statsLabel}>{label}</Text>
+  </View>
+);
+
+const PaymentCard = ({ item, onPay }: { item: Mensualidad; onPay: (item: Mensualidad) => void }) => {
+  const formatearMonto = (monto: number) => {
+    return `$${monto.toLocaleString("es-CL")}`;
+  };
+
+  const formatearFecha = (fechaString: string | null) => {
+    if (!fechaString) return "Pendiente";
+    try {
+      const fecha = new Date(fechaString);
+      return fecha.toLocaleDateString("es-ES");
+    } catch {
+      return "Fecha inválida";
+    }
+  };
+
+  const obtenerNombreMes = (mes: string) => {
+    const meses: { [key: string]: string } = {
+      "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
+      "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
+      "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre",
+    };
+    return meses[mes] || mes;
+  };
+
+  const getStatusColor = (estado: string) => {
+    switch (estado) {
+      case "Pagado": return { color: "#2ecc71", icon: "checkmark-circle" };
+      case "Pendiente": return { color: "#e74c3c", icon: "time" };
+      case "Cancelado": return { color: "#95a5a6", icon: "close-circle" };
+      default: return { color: "#95a5a6", icon: "help-circle" };
+    }
+  };
+
+  const statusInfo = getStatusColor(item.estado_pago);
+
+  return (
+    <View style={styles.paymentCard}>
+      <View style={styles.cardHeader}>
+        <View style={styles.dateContainer}>
+          <Ionicons name="calendar" size={16} color="#3f3db8ff" />
+          <Text style={styles.dateText}>
+            {obtenerNombreMes(item.mes_referencia)} {item.anio_referencia}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: `${statusInfo.color}20` },
+          ]}
+        >
+          <Ionicons
+            name={statusInfo.icon as any}
+            size={14}
+            color={statusInfo.color}
+          />
+          <Text style={[styles.statusText, { color: statusInfo.color }]}>
+            {item.estado_pago}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.cardContent}>
+        <View style={styles.paymentInfo}>
+          <Ionicons name="cash" size={14} color="#666" />
+          <Text style={styles.paymentText}>
+            {formatearMonto(item.monto)}
+          </Text>
+        </View>
+        <View style={styles.paymentInfo}>
+          <Ionicons name="time" size={14} color="#666" />
+          <Text style={styles.paymentText}>
+            Vence: {formatearFecha(item.fecha_vencimiento)}
+          </Text>
+        </View>
+        {item.fecha_pago && (
+          <View style={styles.paymentInfo}>
+            <Ionicons name="checkmark" size={14} color="#666" />
+            <Text style={styles.paymentText}>
+              Pagado: {formatearFecha(item.fecha_pago)}
+            </Text>
+          </View>
+        )}
+        {item.metodo_pago && (
+          <View style={styles.paymentInfo}>
+            <Ionicons name="card" size={14} color="#666" />
+            <Text style={styles.paymentText}>
+              {item.metodo_pago}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {item.estado_pago === "Pendiente" && (
+        <TouchableOpacity
+          style={styles.payButton}
+          onPress={() => onPay(item)}
+        >
+          <Ionicons name="card" size={16} color="#fff" />
+          <Text style={styles.payButtonText}>Pagar Ahora</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
 const PagosScreen = () => {
   const [mensualidades, setMensualidades] = useState<Mensualidad[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const cargarMensualidades = async () => {
     try {
-      setCargando(true);
       setError(null);
 
       if (!user?.id) {
@@ -53,7 +173,8 @@ const PagosScreen = () => {
     } catch (error: any) {
       setError("Error al conectar con el servidor");
     } finally {
-      setCargando(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -61,37 +182,9 @@ const PagosScreen = () => {
     cargarMensualidades();
   }, [user?.id]);
 
-  const formatearFecha = (fechaString: string | null) => {
-    if (!fechaString) return "Pendiente";
-
-    try {
-      const fecha = new Date(fechaString);
-      return fecha.toLocaleDateString("es-ES");
-    } catch {
-      return "Fecha inválida";
-    }
-  };
-
-  const formatearMonto = (monto: number) => {
-    return `$${monto.toLocaleString("es-CL")}`;
-  };
-
-  const obtenerNombreMes = (mes: string) => {
-    const meses: { [key: string]: string } = {
-      "01": "Enero",
-      "02": "Febrero",
-      "03": "Marzo",
-      "04": "Abril",
-      "05": "Mayo",
-      "06": "Junio",
-      "07": "Julio",
-      "08": "Agosto",
-      "09": "Septiembre",
-      "10": "Octubre",
-      "11": "Noviembre",
-      "12": "Diciembre",
-    };
-    return meses[mes] || mes;
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarMensualidades();
   };
 
   const procesarPago = async (mensualidad: Mensualidad) => {
@@ -103,11 +196,7 @@ const PagosScreen = () => {
 
       Alert.alert(
         "Confirmar Pago",
-        `¿Estás seguro que deseas pagar la mensualidad de ${obtenerNombreMes(
-          mensualidad.mes_referencia
-        )} ${mensualidad.anio_referencia} por ${formatearMonto(
-          mensualidad.monto
-        )}?`,
+        `¿Estás seguro que deseas pagar la mensualidad de ${mensualidad.mes_referencia}/${mensualidad.anio_referencia} por $${mensualidad.monto.toLocaleString("es-CL")}?`,
         [
           { text: "Cancelar", style: "cancel" },
           {
@@ -142,12 +231,8 @@ const PagosScreen = () => {
 
   const calcularResumen = () => {
     const total = mensualidades.length;
-    const pagados = mensualidades.filter(
-      (m) => m.estado_pago === "Pagado"
-    ).length;
-    const pendientes = mensualidades.filter(
-      (m) => m.estado_pago === "Pendiente"
-    ).length;
+    const pagados = mensualidades.filter((m) => m.estado_pago === "Pagado").length;
+    const pendientes = mensualidades.filter((m) => m.estado_pago === "Pendiente").length;
     const totalPagado = mensualidades
       .filter((m) => m.estado_pago === "Pagado")
       .reduce((sum, m) => sum + m.monto, 0);
@@ -160,310 +245,326 @@ const PagosScreen = () => {
 
   const resumen = calcularResumen();
 
-  if (cargando) {
+  // Pantalla de carga completa
+  if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#3f3db8ff" />
-        <Text style={styles.loadingText}>Cargando mensualidades...</Text>
-      </View>
-    );
-  }
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.welcome}>Mis Pagos</Text>
+            <Text style={styles.subtitle}>Cargando tus mensualidades...</Text>
+          </View>
+          <View style={styles.avatarContainer}>
+            <View style={styles.userAvatar}>
+              <Text style={styles.userAvatarText}>
+                {user?.nombre?.charAt(0)}
+                {user?.apellido?.charAt(0)}
+              </Text>
+            </View>
+          </View>
+        </View>
 
-  if (error) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>Error al cargar las mensualidades</Text>
-        <Text style={styles.errorSubtext}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={cargarMensualidades}
-        >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </TouchableOpacity>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingContent}>
+            <Ionicons name="card" size={60} color="#3f3db8ff" />
+            <Text style={styles.loadingText}>Cargando pagos...</Text>
+            <ActivityIndicator size="large" color="#3f3db8ff" style={styles.loadingSpinner} />
+          </View>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>
-          {user?.nombre} {user?.apellido}
-        </Text>
-        <Text style={styles.userRole}>
-          {user?.rol === "jugador"
-            ? "Jugador"
-            : user?.rol === "apoderado"
-            ? "Apoderado"
-            : "Usuario"}
-        </Text>
-      </View>
-
-      <View style={styles.resumenContainer}>
-        <Text style={styles.resumenTitle}>Resumen de Pagos</Text>
-        <View style={styles.resumenGrid}>
-          <View style={styles.resumenItem}>
-            <Text style={styles.resumenNumber}>{resumen.total}</Text>
-            <Text style={styles.resumenLabel}>Total</Text>
-          </View>
-          <View style={styles.resumenItem}>
-            <Text style={[styles.resumenNumber, styles.pagado]}>
-              {resumen.pagados}
-            </Text>
-            <Text style={styles.resumenLabel}>Pagados</Text>
-          </View>
-          <View style={styles.resumenItem}>
-            <Text style={[styles.resumenNumber, styles.pendiente]}>
-              {resumen.pendientes}
-            </Text>
-            <Text style={styles.resumenLabel}>Pendientes</Text>
-          </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.welcome}>Mis Pagos</Text>
+          <Text style={styles.subtitle}>
+            Hola {user?.nombre}, aquí está tu estado de pagos
+          </Text>
         </View>
-        <View style={styles.resumenMontos}>
-          <Text style={styles.resumenMontoLabel}>
-            Total pagado:{" "}
-            <Text style={styles.montoPagado}>
-              {formatearMonto(resumen.totalPagado)}
+        <View style={styles.avatarContainer}>
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarText}>
+              {user?.nombre?.charAt(0)}
+              {user?.apellido?.charAt(0)}
             </Text>
-          </Text>
-          <Text style={styles.resumenMontoLabel}>
-            Total pendiente:{" "}
-            <Text style={styles.montoPendiente}>
-              {formatearMonto(resumen.totalPendiente)}
-            </Text>
-          </Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.listaContainer}>
-        <Text style={styles.listaTitle}>Historial de Mensualidades</Text>
-
-        {mensualidades.length === 0 ? (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>
-              No hay mensualidades registradas
-            </Text>
-            <Text style={styles.noDataSubtext}>
-              {user?.rol === "jugador"
-                ? "Las mensualidades se generan automáticamente cada mes"
-                : "No hay mensualidades asignadas a este usuario"}
-            </Text>
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={cargarMensualidades}
-            >
-              <Text style={styles.infoButtonText}>Actualizar</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          mensualidades.map((item) => (
-            <View
-              key={item.id_mensualidad}
-              style={[
-                styles.mensualidadCard,
-                item.estado_pago === "Pagado" && styles.cardPagado,
-                item.estado_pago === "Pendiente" && styles.cardPendiente,
-              ]}
-            >
-              <View style={styles.mensualidadHeader}>
-                <Text style={styles.mesText}>
-                  {obtenerNombreMes(item.mes_referencia)} {item.anio_referencia}
-                </Text>
-                <Text
-                  style={[
-                    styles.estadoBadge,
-                    item.estado_pago === "Pagado" && styles.estadoPagado,
-                    item.estado_pago === "Pendiente" && styles.estadoPendiente,
-                    item.estado_pago === "Cancelado" && styles.estadoCancelado,
-                  ]}
-                >
-                  {item.estado_pago}
-                </Text>
-              </View>
-
-              <View style={styles.mensualidadBody}>
-                <View style={styles.mensualidadInfo}>
-                  <Text style={styles.montoText}>
-                    {formatearMonto(item.monto)}
-                  </Text>
-                  <Text style={styles.fechaText}>
-                    Vence: {formatearFecha(item.fecha_vencimiento)}
-                  </Text>
-                  {item.fecha_pago && (
-                    <Text style={styles.fechaText}>
-                      Pagado: {formatearFecha(item.fecha_pago)}
-                    </Text>
-                  )}
-                  {item.metodo_pago && (
-                    <Text style={styles.metodoText}>
-                      Método: {item.metodo_pago}
-                    </Text>
-                  )}
-                </View>
-
-                {item.estado_pago === "Pendiente" && (
-                  <TouchableOpacity
-                    style={styles.pagarButton}
-                    onPress={() => procesarPago(item)}
-                  >
-                    <Text style={styles.pagarButtonText}>Pagar</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={styles.actualizarButton}
-        onPress={cargarMensualidades}
+      <ScrollView
+        style={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3f3db8ff"]}
+            tintColor="#3f3db8ff"
+          />
+        }
       >
-        <Text style={styles.actualizarButtonText}>Actualizar Lista</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumen de Pagos</Text>
+          <View style={styles.statsGrid}>
+            <StatsCard
+              icon="document"
+              value={resumen.total}
+              label="Total"
+              color="#3f3db8ff"
+            />
+            <StatsCard
+              icon="checkmark-circle"
+              value={resumen.pagados}
+              label="Pagados"
+              color="#2ecc71"
+            />
+            <StatsCard
+              icon="time"
+              value={resumen.pendientes}
+              label="Pendientes"
+              color="#e74c3c"
+            />
+          </View>
+          
+          <View style={styles.amountsContainer}>
+            <View style={styles.amountItem}>
+              <Ionicons name="trending-up" size={16} color="#2ecc71" />
+              <Text style={styles.amountLabel}>Total pagado: </Text>
+              <Text style={styles.amountValue}>
+                ${resumen.totalPagado.toLocaleString("es-CL")}
+              </Text>
+            </View>
+            <View style={styles.amountItem}>
+              <Ionicons name="trending-down" size={16} color="#e74c3c" />
+              <Text style={styles.amountLabel}>Total pendiente: </Text>
+              <Text style={styles.amountValue}>
+                ${resumen.totalPendiente.toLocaleString("es-CL")}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Historial de Mensualidades</Text>
+            {mensualidades.length > 0 && (
+              <Text style={styles.sessionCount}>
+                {mensualidades.length} mensualidades
+              </Text>
+            )}
+          </View>
+
+          {mensualidades.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="card-outline" size={48} color="#ccc" />
+              <Text style={styles.emptyStateText}>
+                No hay mensualidades registradas
+              </Text>
+              <Text style={[styles.emptyStateText, { fontSize: 14, marginTop: 5 }]}>
+                {user?.rol === "jugador" 
+                  ? "Las mensualidades se generan automáticamente cada mes" 
+                  : "No hay mensualidades asignadas a este usuario"
+                }
+              </Text>
+            </View>
+          ) : (
+            mensualidades.map((item) => (
+              <PaymentCard 
+                key={item.id_mensualidad} 
+                item={item} 
+                onPay={procesarPago} 
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    padding: 16,
+    backgroundColor: "#f8f9fa",
   },
-  centered: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  userInfo: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#333",
-  },
-  userRole: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  resumenContainer: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  resumenTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
-    color: "#333",
-  },
-  resumenGrid: {
+  header: {
+    backgroundColor: "#3f3db8ff",
+    padding: 25,
+    paddingTop: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  resumenItem: {
     alignItems: "center",
+    shadowColor: "#3f3db8ff",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
   },
-  resumenNumber: {
+  headerContent: {
+    flex: 1,
+  },
+  welcome: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#3f3db8ff",
+    color: "white",
+    marginBottom: 5,
   },
-  pagado: {
-    color: "#4CAF50",
-  },
-  pendiente: {
-    color: "#FF9800",
-  },
-  resumenLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  resumenMontos: {
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    paddingTop: 12,
-  },
-  resumenMontoLabel: {
+  subtitle: {
     fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
+    color: "rgba(255,255,255,0.9)",
   },
-  montoPagado: {
-    color: "#4CAF50",
-    fontWeight: "bold",
+  avatarContainer: {
+    marginLeft: 15,
   },
-  montoPendiente: {
-    color: "#FF9800",
-    fontWeight: "bold",
+  userAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
   },
-  listaContainer: {
-    marginBottom: 16,
-  },
-  listaTitle: {
+  userAvatarText: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 12,
+    color: "#fff",
+  },
+  // Nuevos estilos para el loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  loadingContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 20,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  loadingSpinner: {
+    marginTop: 10,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  section: {
+    padding: 20,
+    paddingBottom: 0,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 15,
+  },
+  sessionCount: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  progressContainer: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  progressLabel: {
+    fontSize: 16,
+    fontWeight: "600",
     color: "#333",
   },
-  noDataContainer: {
-    backgroundColor: "#fff",
-    padding: 32,
-    borderRadius: 12,
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statsCard: {
+    width: (width - 60) / 3,
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 15,
     alignItems: "center",
+    marginBottom: 15,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  noDataText: {
-    fontSize: 16,
-    color: "#666",
+  statsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 8,
-    textAlign: "center",
   },
-  noDataSubtext: {
-    fontSize: 14,
-    color: "#999",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  infoButton: {
-    backgroundColor: "#3f3db8ff",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  infoButtonText: {
-    color: "#fff",
+  statsValue: {
+    fontSize: 20,
     fontWeight: "bold",
-    fontSize: 14,
+    color: "#333",
+    marginBottom: 4,
   },
-  mensualidadCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
+  statsLabel: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+  },
+  amountsContainer: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  amountItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 8,
+    flex: 1,
+  },
+  amountValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  paymentCard: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 15,
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -471,120 +572,77 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardPagado: {
-    borderLeftWidth: 4,
-    borderLeftColor: "#4CAF50",
-  },
-  cardPendiente: {
-    borderLeftWidth: 4,
-    borderLeftColor: "#FF9800",
-  },
-  mensualidadHeader: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  mesText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  estadoBadge: {
-    fontSize: 12,
-    fontWeight: "bold",
+  dateText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginLeft: 6,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    gap: 4,
   },
-  estadoPagado: {
-    backgroundColor: "#E8F5E8",
-    color: "#4CAF50",
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
-  estadoPendiente: {
-    backgroundColor: "#FFF3E0",
-    color: "#FF9800",
+  cardContent: {
+    gap: 6,
+    marginBottom: 12,
   },
-  estadoCancelado: {
-    backgroundColor: "#FFEBEE",
-    color: "#F44336",
-  },
-  mensualidadBody: {
+  paymentInfo: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  mensualidadInfo: {
-    flex: 1,
-  },
-  montoText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
-  },
-  fechaText: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 2,
-  },
-  metodoText: {
-    fontSize: 12,
-    color: "#666",
-    fontStyle: "italic",
-  },
-  pagarButton: {
-    backgroundColor: "#3f3db8ff",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  pagarButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  actualizarButton: {
-    backgroundColor: "#6c757d",
-    padding: 16,
-    borderRadius: 12,
     alignItems: "center",
-    marginBottom: 32,
   },
-  actualizarButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#3f3db8ff",
-  },
-  errorText: {
-    color: "#F44336",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  errorSubtext: {
+  paymentText: {
+    fontSize: 13,
     color: "#666",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    marginLeft: 6,
   },
-  retryButton: {
+  payButton: {
     backgroundColor: "#3f3db8ff",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
-  retryButtonText: {
+  payButtonText: {
     color: "white",
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  emptyState: {
+    backgroundColor: "white",
+    padding: 40,
+    borderRadius: 15,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emptyStateText: {
     fontSize: 16,
+    color: "#666",
+    marginTop: 10,
+    textAlign: "center",
   },
 });
 
