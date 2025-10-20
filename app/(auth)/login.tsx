@@ -192,9 +192,6 @@ const LoginScreen: React.FC = () => {
           >
             <View style={styles.header}>
               <View>
-                {/* 
-                <Ionicons name="basketball" size={42} color="#fff" />
-                */}
                 <Image
                   source={require("../../assets/icon.png")}
                   resizeMode="contain"
@@ -409,7 +406,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.2)",
   },

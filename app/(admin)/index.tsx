@@ -365,8 +365,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   featureIconContainer: {
-    width: 50,
-    height: 50,
+    width: 30,
+    height: 30,
     borderRadius: 10,
     backgroundColor: "rgba(63, 61, 184, 0.1)",
     justifyContent: "center",
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: "#dc3545",
-    margin: 20,
+    margin: 10,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",

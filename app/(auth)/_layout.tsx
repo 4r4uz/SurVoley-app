@@ -37,7 +37,7 @@ export default function AuthLayout() {
     <SafeLayout
       backgroundColor="#f8fafc"
       headerBackgroundColor="#3f3db8ff"
-      edges={["right", "left"]}
+      edges={["right", "left","top","bottom"]}
     >
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
