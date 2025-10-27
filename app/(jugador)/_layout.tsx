@@ -37,7 +37,7 @@ export default function JugadorLayout() {
   }
 
   return (
-    <SafeLayout backgroundColor="#f8fafc" edges={["right", "left","bottom","top"]}>
+    <SafeLayout edges={["right", "left"]}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="asistencia" />

@@ -37,7 +37,7 @@ export default function EntrenadorLayout() {
   }
 
   return (
-    <SafeLayout backgroundColor="#ffffff" edges={["right", "left"]}>
+    <SafeLayout edges={["right", "left"]}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>

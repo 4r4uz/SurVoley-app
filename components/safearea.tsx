@@ -11,7 +11,6 @@ interface SafeLayoutProps {
 
 export default function SafeLayout({
   children,
-  backgroundColor = "#f8fafc77",
   edges = ["top", "right", "bottom", "left"],
   headerBackgroundColor,
 }: SafeLayoutProps) {
@@ -24,7 +23,6 @@ export default function SafeLayout({
           style={[
             styles.absoluteHeader,
             { 
-              backgroundColor: headerBackgroundColor,
               height: insets.top + 100, 
             }
           ]} 
@@ -39,7 +37,6 @@ export default function SafeLayout({
             paddingRight: edges.includes("right") ? insets.right : 0,
             paddingBottom: edges.includes("bottom") ? insets.bottom : 0,
             paddingLeft: edges.includes("left") ? insets.left : 0,
-            backgroundColor,
           },
         ]}
       >

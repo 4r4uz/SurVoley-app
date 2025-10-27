@@ -12,6 +12,7 @@ import { useAuth } from '../../types/use.auth';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../supabase/supabaseClient';
+import GestionUsuarios from './gestion_usuarios';
 
 interface Estadisticas {
   totalUsuarios: number;
@@ -105,42 +106,42 @@ export default function AdminScreen() {
       icon: 'people',
       description: 'Administrar jugadores, entrenadores y apoderados',
       color: '#3f3db8ff',
-      action: () => Alert.alert('Gestión de Usuarios', 'Funcionalidad en desarrollo')
+      route: '/(admin)/gestion_usuarios'
     },
     {
       title: 'Control de Asistencias',
       icon: 'calendar',
       description: 'Ver y administrar asistencias de todos los jugadores',
       color: '#4CAF50',
-      action: () => Alert.alert('Control de Asistencias', 'Funcionalidad en desarrollo')
+      route: '/(admin)/gestion_usuarios'
     },
     {
       title: 'Gestión de Pagos',
       icon: 'card',
       description: 'Administrar mensualidades y estados de pago',
       color: '#FF9800',
-      action: () => Alert.alert('Gestión de Pagos', 'Funcionalidad en desarrollo')
+      route: '/(admin)/gestion_usuarios'
     },
     {
       title: 'Reportes y Estadísticas',
       icon: 'stats-chart',
       description: 'Ver reportes de uso y rendimiento',
       color: '#9C27B0',
-      action: () => Alert.alert('Reportes', 'Funcionalidad en desarrollo')
+      route: '/(admin)/gestion_usuarios'
     },
     {
       title: 'Configuración del Sistema',
       icon: 'settings',
       description: 'Configurar parámetros de la aplicación',
       color: '#607D8B',
-      action: () => Alert.alert('Configuración', 'Funcionalidad en desarrollo')
+      route: '/(admin)/gestion_usuarios'
     },
     {
       title: 'Generar Mensualidades',
       icon: 'add-circle',
       description: 'Generar mensualidades del mes actual',
       color: '#2196F3',
-      action: () => Alert.alert('Generar Mensualidades', 'Funcionalidad en desarrollo')
+      route: '/(admin)/gestion_usuarios'
     }
   ];
 
@@ -159,7 +160,7 @@ export default function AdminScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.avatar}>
@@ -214,7 +215,7 @@ export default function AdminScreen() {
               <TouchableOpacity
                 key={index}
                 style={[styles.featureCard, { borderLeftColor: feature.color }]}
-                onPress={feature.action}
+                onPress={() => router.push(feature.route)}
               >
                 <View style={styles.featureIconContainer}>
                   <Ionicons name={feature.icon as any} size={28} color={feature.color} />

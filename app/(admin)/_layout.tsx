@@ -36,7 +36,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <SafeLayout backgroundColor="#ffffff" edges={["right", "left", "bottom", "top"]}>
+    <SafeLayout edges={["right", "left"]}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>
