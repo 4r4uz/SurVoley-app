@@ -43,7 +43,6 @@ export default function Asistencia() {
               onPress={() => marcarAsistencia(item.id)}
             >
               <Text style={styles.btnText}>Marcar presente</Text>
-              <Text style={styles.btnText}>MArcar Ausente</Text>
             </TouchableOpacity>
           </View>
         )}
