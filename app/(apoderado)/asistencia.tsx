@@ -1,0 +1,16 @@
+import { View, Text, StyleSheet } from "react-native";
+
+export default function Asistencia() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Asistencia de tus hijos</Text>
+      <Text>Juan Pérez — 90% asistencia</Text>
+      <Text>María Pérez — 85% asistencia</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
+});
