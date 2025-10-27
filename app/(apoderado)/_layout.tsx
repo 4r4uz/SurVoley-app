@@ -37,7 +37,7 @@ export default function ApoderadoLayout() {
   }
 
   return (
-    <SafeLayout backgroundColor="#ffffff" edges={["right", "left","bottom","top"]}>
+    <SafeLayout backgroundColor="#ffffff" edges={["right", "left"]}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>

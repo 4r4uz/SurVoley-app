@@ -4,8 +4,6 @@ export default function Asistencia() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Asistencia de tus hijos</Text>
-      <Text>Juan Pérez — 90% asistencia</Text>
-      <Text>María Pérez — 85% asistencia</Text>
     </View>
   );
 }

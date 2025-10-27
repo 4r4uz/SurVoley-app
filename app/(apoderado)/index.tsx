@@ -1,11 +1,33 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from "react-native";
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ApoderadoHome() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+
+  const features = [
+    {
+      title: 'Ver Horarios',
+      icon: 'time',
+      description: 'Consultar horarios de entrenamientos y eventos',
+      route: '/(apoderado)/horarios'
+    },
+    {
+      title: 'Asistencia',
+      icon: 'checkmark-circle',
+      description: 'Revisar registro de asistencia',
+      route: '/(apoderado)/asistencia'
+    },
+    {
+      title: 'Pago Mensual',
+      icon: 'card',
+      description: 'Gestionar pagos y mensualidades',
+      route: '/(apoderado)/pagos'
+    }
+  ];
 
   const handleSignOut = async () => {
     Alert.alert("Cerrar Sesión", "¿Estás seguro de que deseas cerrar sesión?", [
@@ -28,33 +50,48 @@ export default function ApoderadoHome() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bienvenido, {user?.name || "Apoderado"}</Text>
-      <Text style={styles.subtitle}>Selecciona una opción:</Text>
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {user?.nombre?.charAt(0) || 'A'}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.welcome}>¡Hola, {user?.nombre || "Apoderado"}!</Text>
+        <Text style={styles.userInfo}>Bienvenido a SURVOLEY APP</Text>
+        <View style={styles.roleBadge}>
+          <Ionicons name="people" size={14} color="#fff" />
+          <Text style={styles.roleText}>Apoderado</Text>
+        </View>
+      </View>
 
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={() => router.push("/(apoderado)/horarios")}
-      >
-        <Text style={styles.menuText}>📅 Ver Horarios</Text>
-      </TouchableOpacity>
+      <ScrollView style={styles.scrollContent}>
+        <View style={styles.featuresContainer}>
+          <Text style={styles.sectionTitle}>Gestión y Consultas</Text>
+          {features.map((feature, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.featureCard}
+              onPress={() => router.push(feature.route)}
+            >
+              <View style={styles.featureIconContainer}>
+                <Ionicons name={feature.icon as any} size={28} color="#3f3db8ff" />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.featureTitle}>{feature.title}</Text>
+                <Text style={styles.featureDescription}>{feature.description}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={() => router.push("/(apoderado)/asistencia")}
-      >
-        <Text style={styles.menuText}>✅ Asistencia</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={() => router.push("/(apoderado)/pagos")}
-      >
-        <Text style={styles.menuText}>💳 Pago Mensual</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-        <Text style={{ color: "#fff", fontWeight: "bold" }}>Cerrar Sesión</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+          <Ionicons name="log-out-outline" size={20} color="#d9534f" />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -62,40 +99,135 @@ export default function ApoderadoHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
+  header: {
+    backgroundColor: "#3f3db8ff",
+    padding: 20,
+    paddingTop: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    alignItems: 'center',
+    shadowColor: "#3f3db8ff",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarContainer: {
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  avatarText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  welcome: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  userInfo: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.9)",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 5,
+  },
+  roleText: {
+    fontSize: 12,
+    color: "white",
+    fontWeight: '600',
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  featuresContainer: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 15,
+  },
+  featureCard: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  featureIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: "rgba(63, 61, 184, 0.1)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f5f5f5",
+    marginRight: 15,
   },
-  title: {
-    fontSize: 22,
+  featureContent: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 10,
+    color: "#333",
+    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 16,
+  featureDescription: {
+    fontSize: 13,
     color: "#666",
-    marginBottom: 20,
-  },
-  menuButton: {
-    width: "80%",
-    backgroundColor: "#007AFF",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginVertical: 8,
-  },
-  menuText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+    lineHeight: 18,
   },
   logoutButton: {
-    marginTop: 30,
-    backgroundColor: "#d9534f",
-    padding: 14,
-    borderRadius: 10,
-    width: "60%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 15,
+    margin: 20,
+    marginTop: 10,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#d9534f',
+  },
+  logoutText: {
+    fontSize: 16,
+    color: "#d9534f",
+    fontWeight: "bold",
   },
 });
