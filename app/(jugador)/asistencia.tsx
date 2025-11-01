@@ -1,19 +1,17 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Animated,
-  Dimensions,
   RefreshControl,
   TouchableOpacity,
+  StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../types/use.auth";
 import { supabase } from "../../supabase/supabaseClient";
-
-const { width } = Dimensions.get("window");
 
 interface AttendanceItem {
   id: string;
@@ -35,263 +33,216 @@ interface NextSession {
   esEvento?: boolean;
 }
 
-const AttendanceProgress = ({ percentage }: { percentage: number }) => {
-  const progressAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.spring(progressAnim, {
-      toValue: percentage,
-      useNativeDriver: false,
-      tension: 50,
-      friction: 7,
-    }).start();
-  }, [percentage]);
-
-  const widthInterpolated = progressAnim.interpolate({
-    inputRange: [0, 100],
-    outputRange: ["0%", "100%"],
-  });
-
-  const getProgressColor = (percent: number) => {
-    if (percent >= 80) return "#2ecc71";
-    if (percent >= 60) return "#f39c12";
-    return "#e74c3c";
-  };
-
+const StatsCard = React.memo(({ icon, value, label, color }: any) => {
   return (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressLabel}>Tu progreso de asistencia</Text>
-        <Text style={styles.progressPercentage}>{percentage}%</Text>
+    <View style={styles.statsCard}>
+      <View style={[styles.statsIcon, { backgroundColor: color + "15" }]}>
+        <Ionicons name={icon} size={20} color={color} />
       </View>
-      <View style={styles.progressBar}>
-        <Animated.View
-          style={[
-            styles.progressFill,
-            {
-              width: widthInterpolated,
-              backgroundColor: getProgressColor(percentage),
-            },
-          ]}
-        />
-      </View>
-      <View style={styles.progressLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#e74c3c" }]} />
-          <Text style={styles.legendText}>Baja</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#f39c12" }]} />
-          <Text style={styles.legendText}>Media</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#2ecc71" }]} />
-          <Text style={styles.legendText}>Alta</Text>
-        </View>
-      </View>
+      <Text style={styles.statsValue}>{value}</Text>
+      <Text style={styles.statsLabel}>{label}</Text>
     </View>
   );
-};
+});
 
-const AttendanceCard = ({ item }: { item: AttendanceItem }) => {
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Presente":
-        return { icon: "checkmark-circle", color: "#2ecc71" };
-      case "Ausente":
-        return { icon: "close-circle", color: "#e74c3c" };
-      case "Justificado":
-        return { icon: "time", color: "#f39c12" };
-      case "Sin registro":
-        return { icon: "help-circle", color: "#95a5a6" };
-      default:
-        return { icon: "help-circle", color: "#95a5a6" };
+const NextSessionCard = React.memo(
+  ({ nextSession }: { nextSession: NextSession | null }) => {
+    if (!nextSession) {
+      return (
+        <View style={[styles.nextSessionCard, styles.nextSessionEmpty]}>
+          <View style={styles.nextSessionContent}>
+            <View style={[styles.sessionIcon, { backgroundColor: "#F3F4F6" }]}>
+              <Ionicons name="calendar-outline" size={24} color="#6B7280" />
+            </View>
+            <View style={styles.sessionInfo}>
+              <Text style={styles.sessionTitle}>Próxima Sesión</Text>
+              <Text style={styles.noSessionText}>
+                No hay sesiones programadas
+              </Text>
+            </View>
+          </View>
+        </View>
+      );
     }
-  };
 
-  const statusInfo = getStatusIcon(item.estado_asistencia);
+    const formatDate = (dateString: string) => {
+      try {
+        const date = new Date(dateString);
+        return {
+          day: date.getDate(),
+          month: date.toLocaleDateString("es-ES", { month: "short" }),
+          time: date.toLocaleTimeString("es-ES", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
+        };
+      } catch {
+        return { day: "?", month: "???", time: "--:--", weekday: "---" };
+      }
+    };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("es-ES", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return "Fecha no disponible";
-    }
-  };
+    const dateInfo = formatDate(nextSession.fecha_hora);
 
-  const formatTime = (dateTimeString: string) => {
-    try {
-      const date = new Date(dateTimeString);
-      return date.toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "Horario no especificado";
-    }
-  };
-
-  return (
-    <View style={styles.attendanceCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.dateContainer}>
-          <Ionicons name="calendar" size={16} color="#3f3db8ff" />
-          <Text style={styles.dateText}>
-            {item.fecha_asistencia
-              ? formatDate(item.fecha_asistencia)
-              : item.fecha_hora
-              ? formatDate(item.fecha_hora)
-              : "Fecha no disponible"}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: `${statusInfo.color}20` },
-          ]}
-        >
-          <Ionicons
-            name={statusInfo.icon as any}
-            size={14}
-            color={statusInfo.color}
-          />
-          <Text style={[styles.statusText, { color: statusInfo.color }]}>
-            {item.estado_asistencia}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.sessionInfo}>
-          <Ionicons name="basketball" size={14} color="#666" />
-          <Text style={styles.sessionText}>
-            {item.titulo || item.tipo_evento || "Sesión"}
-          </Text>
-        </View>
-        <View style={styles.sessionInfo}>
-          <Ionicons name="time" size={14} color="#666" />
-          <Text style={styles.sessionText}>
-            {item.fecha_hora
-              ? formatTime(item.fecha_hora)
-              : "Horario no especificado"}
-          </Text>
-        </View>
-        <View style={styles.sessionInfo}>
-          <Ionicons name="location" size={14} color="#666" />
-          <Text style={styles.sessionText}>
-            {item.lugar || item.ubicacion || "Lugar no especificado"}
-          </Text>
-        </View>
-      </View>
-
-      {item.descripcion && (
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesText}>{item.descripcion}</Text>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const StatsCard = ({ icon, value, label, color }: any) => (
-  <View style={styles.statsCard}>
-    <View style={[styles.statsIcon, { backgroundColor: color }]}>
-      <Ionicons name={icon} size={20} color="#fff" />
-    </View>
-    <Text style={styles.statsValue}>{value}</Text>
-    <Text style={styles.statsLabel}>{label}</Text>
-  </View>
-);
-
-const NextSessionCard = ({
-  nextSession,
-}: {
-  nextSession: NextSession | null;
-}) => {
-  if (!nextSession) {
     return (
-      <View style={styles.nextSession}>
-        <View style={styles.nextSessionHeader}>
-          <Ionicons name="notifications" size={20} color="#95a5a6" />
-          <Text style={styles.nextSessionTitle}>Próxima Sesión</Text>
-        </View>
+      <View style={styles.nextSessionCard}>
         <View style={styles.nextSessionContent}>
-          <Text style={styles.noSessionText}>No hay sesiones programadas</Text>
+          <View style={styles.sessionDate}>
+            <Text style={styles.sessionDay}>{dateInfo.day}</Text>
+            <Text style={styles.sessionMonth}>{dateInfo.month}</Text>
+            <Text style={styles.sessionWeekday}>{dateInfo.weekday}</Text>
+          </View>
+
+          <View style={styles.sessionInfo}>
+            <Text style={styles.sessionTitle}>
+              {nextSession.titulo || nextSession.tipo_evento || "Sesión"}
+            </Text>
+            <View style={styles.sessionDetails}>
+              <View style={styles.detailItem}>
+                <Ionicons name="time" size={14} color="#6B7280" />
+                <Text style={styles.detailText}>{dateInfo.time}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="location" size={14} color="#6B7280" />
+                <Text style={styles.detailText}>
+                  {nextSession.lugar || "Por confirmar"}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={[styles.sessionType, { backgroundColor: "#2563EB" }]}>
+            <Ionicons
+              name={nextSession.esEvento ? "trophy" : "basketball"}
+              size={18}
+              color="#FFFFFF"
+            />
+          </View>
         </View>
       </View>
     );
   }
+);
 
-  const formatNextSessionDate = (dateString: string) => {
+const AttendanceCard = React.memo(({ item }: { item: AttendanceItem }) => {
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case "Presente":
+        return {
+          icon: "checkmark-circle",
+          color: "#10B981",
+          bg: "#F0FDF4",
+          borderColor: "#10B981",
+          badgeText: "PRESENTE",
+        };
+      case "Ausente":
+        return {
+          icon: "close-circle",
+          color: "#EF4444",
+          bg: "#FEF2F2",
+          borderColor: "#EF4444",
+          badgeText: "AUSENTE",
+        };
+      case "Justificado":
+        return {
+          icon: "time",
+          color: "#F59E0B",
+          bg: "#FFFBEB",
+          borderColor: "#F59E0B",
+          badgeText: "JUSTIFICADO",
+        };
+      default:
+        return {
+          icon: "help-circle",
+          color: "#6B7280",
+          bg: "#F9FAFB",
+          borderColor: "#6B7280",
+          badgeText: "SIN REGISTRO",
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig(item.estado_asistencia);
+
+  const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("es-ES", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      });
+      return {
+        day: date.getDate(),
+        month: date.toLocaleDateString("es-ES", { month: "short" }),
+        weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
+        time: date.toLocaleTimeString("es-ES", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
     } catch {
-      return "Fecha no disponible";
+      return {
+        day: "?",
+        month: "???",
+        weekday: "---",
+        time: "--:--",
+      };
     }
   };
 
-  const formatNextSessionTime = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "Horario no especificado";
-    }
-  };
-
-  const getSessionIcon = () => {
-    if (
-      nextSession.tipo_evento === "Partido" ||
-      nextSession.tipo_evento === "Torneo"
-    ) {
-      return "trophy";
-    }
-    return "basketball";
-  };
-
-  const getSessionTypeText = () => {
-    if (nextSession.titulo) {
-      return nextSession.titulo;
-    }
-    return nextSession.tipo_evento || "Sesión";
-  };
+  const dateInfo = item.fecha_asistencia
+    ? formatDate(item.fecha_asistencia)
+    : item.fecha_hora
+    ? formatDate(item.fecha_hora)
+    : {
+        day: "?",
+        month: "???",
+        weekday: "---",
+        time: "--:--",
+      };
 
   return (
-    <View style={styles.nextSession}>
-      <View style={styles.nextSessionHeader}>
-        <Ionicons name="notifications" size={20} color="#3f3db8ff" />
-        <Text style={styles.nextSessionTitle}>
-          {nextSession.esEvento ? "Próximo Evento" : "Próxima Sesión"}
-        </Text>
-      </View>
-      <View style={styles.nextSessionContent}>
-        <View style={styles.sessionTypeRow}>
-          <Ionicons name={getSessionIcon()} size={16} color="#3f3db8ff" />
-          <Text style={styles.nextSessionType}>{getSessionTypeText()}</Text>
+    <View
+      style={[
+        styles.attendanceCard,
+        {
+          backgroundColor: statusConfig.bg,
+          borderColor: statusConfig.borderColor,
+        },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.dateSection}>
+          <Text style={styles.dateDay}>{dateInfo.day}</Text>
+          <Text style={styles.dateMonth}>{dateInfo.month}</Text>
+          <Text style={styles.dateWeekday}>{dateInfo.weekday}</Text>
         </View>
-        <Text style={styles.nextSessionDate}>
-          {formatNextSessionDate(nextSession.fecha_hora)} •{" "}
-          {formatNextSessionTime(nextSession.fecha_hora)}
-        </Text>
-        <Text style={styles.nextSessionLocation}>{nextSession.lugar}</Text>
+
+        <View style={styles.cardContent}>
+          <Text style={styles.sessionName}>
+            {item.titulo || item.tipo_evento || "Sesión de entrenamiento"}
+          </Text>
+
+          <View style={styles.sessionMeta}>
+            <View style={styles.metaItem}>
+              <Ionicons name="time" size={14} color="#6B7280" />
+              <Text style={styles.metaText}>{dateInfo.time}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="location" size={14} color="#6B7280" />
+              <Text style={styles.metaText}>
+                {item.lugar || item.ubicacion || "Lugar no especificado"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}
+        >
+          <Ionicons name={statusConfig.icon as any} size={14} color="#FFFFFF" />
+          <Text style={styles.statusBadgeText}>{statusConfig.badgeText}</Text>
+        </View>
       </View>
     </View>
   );
-};
+});
 
 export default function MiAsistenciaScreen() {
   const { user } = useAuth();
@@ -299,144 +250,151 @@ export default function MiAsistenciaScreen() {
   const [nextSession, setNextSession] = useState<NextSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showAllRecords, setShowAllRecords] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserData();
-    }
-  }, [user]);
-
-  const fetchUserData = async () => {
+  const fetchNextSession = useCallback(async () => {
     try {
-      setError(null);
+      const now = new Date().toISOString();
 
-      const { data: jugadorData, error: jugadorError } = await supabase
-        .from("Jugador")
-        .select("id_jugador")
-        .eq("id_jugador", user?.id)
-        .single();
+      const [entrenamientosData, eventosData] = await Promise.all([
+        supabase
+          .from("Entrenamiento")
+          .select("fecha_hora, lugar, descripcion")
+          .gt("fecha_hora", now)
+          .order("fecha_hora", { ascending: true })
+          .limit(1)
+          .single(),
+        supabase
+          .from("Evento")
+          .select("fecha_hora, tipo_evento, ubicacion, titulo")
+          .gt("fecha_hora", now)
+          .order("fecha_hora", { ascending: true })
+          .limit(1)
+          .single(),
+      ]);
 
-      if (jugadorError || !jugadorData) {
+      const sessions = [];
+
+      if (entrenamientosData.data) {
+        sessions.push({
+          fecha_hora: entrenamientosData.data.fecha_hora,
+          tipo_evento: "Entrenamiento",
+          lugar: entrenamientosData.data.lugar,
+          titulo: entrenamientosData.data.descripcion,
+          esEvento: false,
+        });
+      }
+
+      if (eventosData.data) {
+        sessions.push({
+          fecha_hora: eventosData.data.fecha_hora,
+          tipo_evento: eventosData.data.tipo_evento,
+          lugar: eventosData.data.ubicacion,
+          titulo: eventosData.data.titulo,
+          esEvento: true,
+        });
+      }
+
+      setNextSession(sessions.length > 0 ? sessions[0] : null);
+    } catch (error) {
+      console.error("Error en fetchNextSession:", error);
+      setNextSession(null);
+    }
+  }, []);
+
+  const fetchUserData = useCallback(async () => {
+    try {
+      if (!user?.id) {
         setAttendanceData([]);
-        await fetchNextSession();
+        setNextSession(null);
         return;
       }
 
-      const idJugador = jugadorData.id_jugador;
-
-      const { data: asistenciaData, error: asistenciaError } = await supabase
+      const { data: asistenciaData, error } = await supabase
         .from("Asistencia")
         .select(
           `
-          *,
-          Entrenamiento (*)
+          id_asistencia,
+          estado_asistencia,
+          fecha_asistencia,
+          id_entrenamiento,
+          id_evento,
+          Entrenamiento(fecha_hora, lugar, descripcion),
+          Evento(fecha_hora, ubicacion, tipo_evento, titulo)
         `
         )
-        .eq("id_jugador", idJugador)
-        .order("fecha_asistencia", { ascending: false });
+        .eq("id_jugador", user.id)
+        .order("fecha_asistencia", { ascending: false })
+        .limit(10);
 
-      if (asistenciaError) {
+      if (error) {
+        console.error("Error cargando asistencias:", error);
         setAttendanceData([]);
       } else {
         const transformedData: AttendanceItem[] = (asistenciaData || []).map(
-          (item: any) => ({
-            id: item.id_asistencia,
-            fecha_asistencia: item.fecha_asistencia,
-            fecha_hora: item.Entrenamiento?.fecha_hora,
-            lugar: item.Entrenamiento?.lugar,
-            tipo_evento: "Entrenamiento",
-            estado_asistencia: item.estado_asistencia,
-            descripcion: item.Entrenamiento?.descripcion,
-          })
+          (item: any) => {
+            if (item.id_entrenamiento && item.Entrenamiento) {
+              return {
+                id: item.id_asistencia,
+                fecha_asistencia: item.fecha_asistencia,
+                fecha_hora: item.Entrenamiento.fecha_hora,
+                lugar: item.Entrenamiento.lugar,
+                tipo_evento: "Entrenamiento",
+                estado_asistencia: item.estado_asistencia,
+                descripcion: item.Entrenamiento.descripcion,
+                titulo: "Entrenamiento",
+              };
+            } else if (item.id_evento && item.Evento) {
+              return {
+                id: item.id_asistencia,
+                fecha_asistencia: item.fecha_asistencia,
+                fecha_hora: item.Evento.fecha_hora,
+                lugar: item.Evento.ubicacion,
+                tipo_evento: item.Evento.tipo_evento,
+                estado_asistencia: item.estado_asistencia,
+                descripcion: item.Evento.titulo,
+                titulo: item.Evento.titulo,
+              };
+            } else {
+              return {
+                id: item.id_asistencia,
+                fecha_asistencia: item.fecha_asistencia,
+                estado_asistencia: item.estado_asistencia,
+                tipo_evento: "Sin información",
+                titulo: "Registro de asistencia",
+              };
+            }
+          }
         );
+
         setAttendanceData(transformedData);
       }
 
       await fetchNextSession();
     } catch (error) {
-      setError("Error al cargar los datos");
+      console.error("Error en fetchUserData:", error);
       setAttendanceData([]);
       setNextSession(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, fetchNextSession]);
 
-  const fetchNextSession = async () => {
-    try {
-      const now = new Date().toISOString();
-
-      const { data: entrenamientosData } = await supabase
-        .from("Entrenamiento")
-        .select("*")
-        .gt("fecha_hora", now)
-        .order("fecha_hora", { ascending: true })
-        .limit(1);
-
-      const { data: eventosData } = await supabase
-        .from("Evento")
-        .select("*")
-        .gt("fecha_hora", now)
-        .order("fecha_hora", { ascending: true })
-        .limit(1);
-
-      const upcomingSessions: NextSession[] = [];
-
-      if (entrenamientosData && entrenamientosData.length > 0) {
-        entrenamientosData.forEach((entrenamiento: any) => {
-          upcomingSessions.push({
-            fecha_hora: entrenamiento.fecha_hora,
-            tipo_evento: "Entrenamiento",
-            lugar: entrenamiento.lugar,
-            titulo: entrenamiento.descripcion,
-            esEvento: false,
-          });
-        });
-      }
-
-      if (eventosData && eventosData.length > 0) {
-        eventosData.forEach((evento: any) => {
-          upcomingSessions.push({
-            fecha_hora: evento.fecha_hora,
-            tipo_evento: evento.tipo_evento,
-            lugar: evento.ubicacion,
-            titulo: evento.titulo,
-            esEvento: true,
-          });
-        });
-      }
-
-      if (upcomingSessions.length > 0) {
-        const closestSession = upcomingSessions.sort(
-          (a, b) =>
-            new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime()
-        )[0];
-        setNextSession(closestSession);
-      } else {
-        setNextSession(null);
-      }
-    } catch (error) {
-      setNextSession(null);
-    }
-  };
-
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchUserData();
-  };
+  }, [fetchUserData]);
 
-  const toggleShowAllRecords = () => {
-    setShowAllRecords(!showAllRecords);
-  };
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+    }
+  }, [user, fetchUserData]);
 
   const relevantAttendanceData = attendanceData.filter(
     (item) => item.estado_asistencia !== "Sin registro"
   );
-
-  const historyData = relevantAttendanceData;
 
   const totalSessions = relevantAttendanceData.length;
   const presentSessions = relevantAttendanceData.filter(
@@ -448,78 +406,44 @@ export default function MiAsistenciaScreen() {
   const justifiedSessions = relevantAttendanceData.filter(
     (item) => item.estado_asistencia === "Justificado"
   ).length;
-  const noRecordSessions = attendanceData.filter(
-    (item) => item.estado_asistencia === "Sin registro"
-  ).length;
 
   const attendanceRate =
     totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
 
   const displayedRecords = showAllRecords
-    ? historyData
-    : historyData.slice(0, 3);
-
-  const hasMoreRecords = historyData.length > 3;
+    ? relevantAttendanceData
+    : relevantAttendanceData.slice(0, 3);
 
   if (loading) {
     return (
       <View style={styles.container}>
+        <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.welcome}>Mi Asistencia</Text>
-            <Text style={styles.subtitle}>Cargando tu información...</Text>
-          </View>
-          <View style={styles.avatarContainer}>
-            <View style={styles.userAvatar}>
-              <Text style={styles.userAvatarText}>
-                {user?.nombre?.charAt(0)}
-                {user?.apellido?.charAt(0)}
-              </Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.welcome}>Mi Asistencia</Text>
+              <Text style={styles.subtitle}>Cargando tu información...</Text>
             </View>
           </View>
         </View>
-
-        <ScrollView
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.section}>
-            <View
-              style={[
-                styles.progressContainer,
-                { alignItems: "center", justifyContent: "center" },
-              ]}
-            >
-              <Ionicons name="refresh" size={40} color="#3f3db8ff" />
-              <Text
-                style={[
-                  styles.progressLabel,
-                  { textAlign: "center", marginTop: 10 },
-                ]}
-              >
-                Cargando datos...
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
+        <View style={styles.loadingContent}>
+          <Ionicons name="basketball" size={60} color="#2563EB" />
+          <Text style={styles.loadingText}>Cargando asistencia...</Text>
+          <ActivityIndicator size="large" color="#2563EB" />
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.welcome}>Mi Asistencia</Text>
-          <Text style={styles.subtitle}>
-            Hola {user?.nombre}, aquí está tu historial
-          </Text>
-        </View>
-        <View style={styles.avatarContainer}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.userAvatarText}>
-              {user?.nombre?.charAt(0)}
-              {user?.apellido?.charAt(0)}
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.welcome}>Mi Asistencia</Text>
+            <Text style={styles.subtitle}>
+              Hola {user?.nombre}, tu rendimiento en detalle
             </Text>
           </View>
         </View>
@@ -532,111 +456,118 @@ export default function MiAsistenciaScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#3f3db8ff"]}
-            tintColor="#3f3db8ff"
+            colors={["#2563EB"]}
+            tintColor="#2563EB"
           />
         }
       >
-        {totalSessions > 0 ? (
-          <View style={styles.section}>
-            <AttendanceProgress percentage={attendanceRate} />
+        {/* Resumen Rápido */}
+        <View style={styles.section}>
+          <View style={styles.statsGrid}>
+            <StatsCard
+              icon="checkmark-circle"
+              value={presentSessions}
+              label="Presente"
+              color="#10B981"
+            />
+            <StatsCard
+              icon="close-circle"
+              value={absentSessions}
+              label="Ausente"
+              color="#EF4444"
+            />
+            <StatsCard
+              icon="time"
+              value={justifiedSessions}
+              label="Justificado"
+              color="#F59E0B"
+            />
+            <StatsCard
+              icon="bar-chart"
+              value={totalSessions}
+              label="Total"
+              color="#2563EB"
+            />
           </View>
-        ) : (
-          <View style={styles.section}>
-            <View style={styles.progressContainer}>
-              <Text style={[styles.progressPercentage, { color: "#9b9b9bff" }]}>
-                Sin registros aún
-              </Text>
+
+          {/* Porcentaje de Asistencia */}
+          <View style={styles.attendanceRate}>
+            <View style={styles.rateHeader}>
+              <Text style={styles.rateTitle}>Tu Asistencia</Text>
+              <Text style={styles.ratePercentage}>{attendanceRate}%</Text>
+            </View>
+            <View style={styles.rateBar}>
+              <View
+                style={[
+                  styles.rateFill,
+                  {
+                    width: `${attendanceRate}%`,
+                    backgroundColor:
+                      attendanceRate >= 80
+                        ? "#10B981"
+                        : attendanceRate >= 60
+                        ? "#F59E0B"
+                        : "#EF4444",
+                  },
+                ]}
+              />
             </View>
           </View>
-        )}
+        </View>
 
-        {totalSessions > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Mis Estadísticas</Text>
-            <View style={styles.statsGrid}>
-              <StatsCard
-                icon="checkmark-circle"
-                value={presentSessions}
-                label="Presente"
-                color="#2ecc71"
-              />
-              <StatsCard
-                icon="close-circle"
-                value={absentSessions}
-                label="Ausente"
-                color="#e74c3c"
-              />
-              <StatsCard
-                icon="time"
-                value={justifiedSessions}
-                label="Justificado"
-                color="#f39c12"
-              />
-              <StatsCard
-                icon="document"
-                value={noRecordSessions}
-                label="Sin registro"
-                color="#95a5a6"
-              />
-            </View>
-          </View>
-        )}
-
-        <NextSessionCard nextSession={nextSession} />
-
+        {/* Próxima Sesión */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mi Historial</Text>
-            {historyData.length > 0 && ( 
-              <Text style={styles.sessionCount}>
-                {historyData.length} sesiones registradas
-              </Text>
+            <Ionicons name="calendar" size={20} color="#2563EB" />
+            <Text style={styles.sectionTitle}>Próxima Sesión</Text>
+          </View>
+          <NextSessionCard nextSession={nextSession} />
+        </View>
+
+        {/* Historial de Asistencia */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="list" size={20} color="#1F2937" />
+              <Text style={styles.sectionTitle}>Historial de Asistencia</Text>
+            </View>
+            {relevantAttendanceData.length > 0 && (
+              <TouchableOpacity
+                style={styles.viewToggle}
+                onPress={() => setShowAllRecords(!showAllRecords)}
+              >
+                <Text style={styles.viewToggleText}>
+                  {showAllRecords
+                    ? "Ver menos"
+                    : `Ver todo (${relevantAttendanceData.length})`}
+                </Text>
+                <Ionicons
+                  name={showAllRecords ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#2563EB"
+                />
+              </TouchableOpacity>
             )}
           </View>
 
-          {historyData.length === 0 ? (
+          {relevantAttendanceData.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>
-                No hay registros de asistencia
-              </Text>
-              <Text
-                style={[styles.emptyStateText, { fontSize: 14, marginTop: 5 }]}
-              >
-                Los registros aparecerán aquí después de tus primeras sesiones
+              <Ionicons name="calendar-outline" size={48} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>Sin registros aún</Text>
+              <Text style={styles.emptySubtitle}>
+                No tienes registros de asistencia todavía
               </Text>
             </View>
           ) : (
-            <>
+            <View style={styles.historyList}>
               {displayedRecords.map((item) => (
                 <AttendanceCard key={item.id} item={item} />
               ))}
-
-              {hasMoreRecords && !showAllRecords && (
-                <TouchableOpacity
-                  style={styles.viewMoreButton}
-                  onPress={toggleShowAllRecords}
-                >
-                  <Text style={styles.viewMoreText}>
-                    Ver más ({historyData.length - 3} restantes){" "}
-                  </Text>
-                  <Ionicons name="chevron-down" size={16} color="#3f3db8ff" />
-                </TouchableOpacity>
-              )}
-
-              {showAllRecords && hasMoreRecords && (
-                <TouchableOpacity
-                  style={styles.viewMoreButton}
-                  onPress={toggleShowAllRecords}
-                >
-                  <Text style={styles.viewMoreText}>Ver menos</Text>
-                  <Ionicons name="chevron-up" size={16} color="#3f3db8ff" />
-                </TouchableOpacity>
-              )}
-            </>
+            </View>
           )}
         </View>
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
@@ -645,150 +576,89 @@ export default function MiAsistenciaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#FFFFFF",
   },
   header: {
-    backgroundColor: "#3f3db8ff",
-    padding: 25,
-    paddingTop: 20,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    shadowColor: "#3f3db8ff",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
+    backgroundColor: "#1E293B",
+    paddingHorizontal: 20,
+    paddingTop: 25,
+    paddingBottom: 20,
   },
   headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  headerTextContainer: {
     flex: 1,
   },
   welcome: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 5,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-  },
-  avatarContainer: {
-    marginLeft: 15,
-  },
-  userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  userAvatarText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "500",
   },
   scrollContent: {
     flex: 1,
   },
+  loadingContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#6B7280",
+    fontWeight: "500",
+    textAlign: "center",
+  },
   section: {
-    padding: 20,
-    paddingBottom: 0,
+    padding: 16,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15,
-  },
-  sessionCount: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
-  },
-  progressContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  progressLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
-  progressPercentage: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#3f3db8ff",
-  },
-  progressBar: {
-    height: 12,
-    backgroundColor: "#ecf0f1",
-    borderRadius: 6,
-    overflow: "hidden",
-    marginBottom: 15,
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 6,
-  },
-  progressLegend: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 5,
-  },
-  legendText: {
-    fontSize: 10,
-    color: "#666",
+    fontWeight: "700",
+    color: "#1F2937",
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    marginBottom: 16,
   },
   statsCard: {
-    width: (width - 60) / 2,
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 15,
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
     alignItems: "center",
-    marginBottom: 15,
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   statsIcon: {
     width: 40,
@@ -799,166 +669,245 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statsValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1F2937",
     marginBottom: 4,
   },
   statsLabel: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
     textAlign: "center",
   },
-  nextSession: {
-    backgroundColor: "white",
-    margin: 20,
-    marginVertical: 10,
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  nextSessionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  nextSessionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginLeft: 8,
-  },
-  nextSessionContent: {
-    gap: 8,
-  },
-  sessionTypeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  nextSessionType: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#3f3db8ff",
-  },
-  nextSessionDate: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-  },
-  nextSessionLocation: {
-    fontSize: 13,
-    color: "#666",
-  },
-  noSessionText: {
-    fontSize: 14,
-    color: "#95a5a6",
-    fontStyle: "italic",
-    textAlign: "center",
-  },
-  attendanceCard: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 12,
-    shadowColor: "#000",
+  attendanceRate: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
-  cardHeader: {
+  rateHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  dateContainer: {
+  rateTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  ratePercentage: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#2563EB",
+  },
+  rateBar: {
+    height: 8,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  rateFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  nextSessionCard: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#3B82F6",
+  },
+  nextSessionEmpty: {
+    backgroundColor: "#F9FAFB",
+    borderColor: "#D1D5DB",
+  },
+  nextSessionContent: {
     flexDirection: "row",
     alignItems: "center",
   },
-  dateText: {
-    fontSize: 14,
+  sessionDate: {
+    alignItems: "center",
+    marginRight: 16,
+    minWidth: 50,
+  },
+  sessionDay: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#2563EB",
+  },
+  sessionMonth: {
+    fontSize: 12,
+    color: "#6B7280",
     fontWeight: "600",
-    color: "#333",
-    marginLeft: 6,
+    textTransform: "uppercase",
+    marginTop: 2,
+  },
+  sessionWeekday: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 2,
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  noSessionText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  sessionDetails: {
+    gap: 6,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  detailText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  sessionType: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sessionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  historyList: {
+    gap: 12,
+  },
+  attendanceCard: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dateSection: {
+    alignItems: "center",
+    marginRight: 16,
+    minWidth: 50,
+  },
+  dateDay: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F2937",
+  },
+  dateMonth: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginTop: 2,
+  },
+  dateWeekday: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    marginTop: 2,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  sessionName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  sessionMeta: {
+    gap: 6,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    color: "#6B7280",
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 6,
     gap: 4,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  cardContent: {
-    gap: 6,
-  },
-  sessionInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sessionText: {
-    fontSize: 13,
-    color: "#666",
-    marginLeft: 6,
-  },
-  notesContainer: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#ecf0f1",
-  },
-  notesText: {
-    fontSize: 12,
-    color: "#666",
-    fontStyle: "italic",
+  statusBadgeText: {
+    fontSize: 10,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   emptyState: {
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     padding: 40,
-    borderRadius: 15,
+    borderRadius: 16,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 10,
-    textAlign: "center",
-  },
-  viewMoreButton: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 15,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: "#ecf0f1",
+    borderColor: "#F3F4F6",
   },
-  viewMoreText: {
-    fontSize: 14,
+  emptyTitle: {
+    fontSize: 18,
+    color: "#374151",
     fontWeight: "600",
-    color: "#3f3db8ff",
-    marginRight: 8,
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  viewToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  viewToggleText: {
+    fontSize: 14,
+    color: "#2563EB",
+    fontWeight: "600",
+  },
+  bottomSpacer: {
+    height: 20,
   },
 });

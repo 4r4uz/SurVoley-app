@@ -19,28 +19,12 @@ export default function EntrenadorLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (user?.rol !== "entrenador") {
-    const routeMap = {
-      admin: "/(admin)",
-      jugador: "/(jugador)",
-      apoderado: "/(apoderado)",
-    };
-    return (
-      <Redirect
-        href={routeMap[user?.rol as keyof typeof routeMap] || "/(auth)/login"}
-      />
-    );
-  }
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (user?.rol !== "entrenador") return <Redirect href="/(auth)/login" />;
 
   return (
-    <SafeLayout edges={["right", "left"]}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-      </Stack>
-    </SafeLayout>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+    </Stack>
   );
 }

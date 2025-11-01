@@ -34,10 +34,8 @@ export default function AuthLayout() {
   }
 
   return (
-    <SafeLayout edges={["right", "left"]}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
-      </Stack>
-    </SafeLayout>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+    </Stack>
   );
 }

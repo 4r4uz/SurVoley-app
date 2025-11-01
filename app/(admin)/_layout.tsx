@@ -19,27 +19,12 @@ export default function AdminLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (user?.rol !== "admin") {
-    const userRoutes = {
-      jugador: "/(jugador)",
-      entrenador: "/(entrenador)",
-      apoderado: "/(apoderado)",
-    };
-
-    const redirectRoute =
-      userRoutes[user?.rol as keyof typeof userRoutes] || "/(auth)/login";
-    return <Redirect href={redirectRoute} />;
-  }
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (user?.rol !== "admin") return <Redirect href="/(auth)/login" />;
 
   return (
-    <SafeLayout edges={["right", "left"]}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-      </Stack>
-    </SafeLayout>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+    </Stack>
   );
 }

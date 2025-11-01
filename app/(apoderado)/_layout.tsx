@@ -19,28 +19,12 @@ export default function ApoderadoLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (user?.rol !== "apoderado") {
-    const routeMap = {
-      admin: "/(admin)",
-      jugador: "/(jugador)",
-      entrenador: "/(entrenador)",
-    };
-    return (
-      <Redirect
-        href={routeMap[user?.rol as keyof typeof routeMap] || "/(auth)/login"}
-      />
-    );
-  }
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (user?.rol !== "apoderado") return <Redirect href="/(auth)/login" />;
 
   return (
-    <SafeLayout edges={["right", "left"]}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-      </Stack>
-    </SafeLayout>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+    </Stack>
   );
 }

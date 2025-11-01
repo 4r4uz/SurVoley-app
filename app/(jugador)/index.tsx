@@ -5,11 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Dimensions,
+  Animated,
 } from "react-native";
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../supabase/supabaseClient";
+
+const { width, height } = Dimensions.get("window");
 
 interface NextEvent {
   id: string;
@@ -26,35 +30,59 @@ export default function JugadorHome() {
   const [nextEvents, setNextEvents] = useState<NextEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideUpAnim = useState(new Animated.Value(25))[0];
+
   const features = [
     {
-      title: "Mis Asistencias",
+      title: "Asistencias",
       icon: "calendar",
-      description: "Ver mi historial de asistencias",
+      description: "Control de participación",
       route: "/(jugador)/asistencia",
+      color: "#8B5CF6",
+      lightColor: "#8B5CF6",
     },
     {
-      title: "Mis Pagos",
+      title: "Pagos",
       icon: "card",
-      description: "Ver mis mensualidades y estados de pago",
+      description: "Estado de cuenta",
       route: "/(jugador)/pagos",
+      color: "#EC4899",
+      lightColor: "#EC4899",
     },
     {
-      title: "Mis Certificados",
+      title: "Certificados",
       icon: "document-text",
-      description: "Ver mis certificados y constancias",
+      description: "Documentos oficiales",
       route: "/(jugador)/certificados",
+      color: "#3B82F6",
+      lightColor: "#3B82F6",
     },
     {
-      title: "Configuración",
+      title: "Ajustes",
       icon: "settings",
-      description: "Ajustes de mi cuenta y preferencias",
+      description: "Configuración personal",
       route: "/(jugador)/settings",
+      color: "#10B981",
+      lightColor: "#10B981",
     },
   ];
 
   useEffect(() => {
     fetchNextEvents();
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const fetchNextEvents = async () => {
@@ -84,7 +112,7 @@ export default function JugadorHome() {
             fecha_hora: entrenamiento.fecha_hora,
             tipo_evento: "Entrenamiento",
             lugar: entrenamiento.lugar,
-            titulo: entrenamiento.descripcion || "Entrenamiento",
+            titulo: entrenamiento.descripcion || "Entrenamiento programado",
             esEvento: false,
           });
         });
@@ -123,7 +151,6 @@ export default function JugadorHome() {
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("es-ES", { month: "short" }),
-      weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
       time: date.toLocaleTimeString("es-ES", {
         hour: "2-digit",
         minute: "2-digit",
@@ -135,129 +162,248 @@ export default function JugadorHome() {
     if (esEvento) {
       if (tipo === "Partido") return "trophy";
       if (tipo === "Torneo") return "medal";
-      return "calendar";
+      return "flag";
     }
     return "basketball";
   };
 
   const getEventColor = (tipo: string, esEvento: boolean) => {
     if (esEvento) {
-      if (tipo === "Partido") return "#e74c3c";
-      if (tipo === "Torneo") return "#f39c12";
-      return "#3f3db8ff";
+      if (tipo === "Partido") return "#EF4444";
+      if (tipo === "Torneo") return "#F59E0B";
+      return "#8B5CF6";
     }
-    return "#2ecc71";
+    return "#10B981";
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.nombre?.charAt(0)}
-              {user?.apellido?.charAt(0)}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.welcome}>¡Hola, {user?.nombre}!</Text>
-        <Text style={styles.userInfo}>Bienvenido a SURVOLEY APP</Text>
-        <View style={styles.roleBadge}>
-          <Ionicons name="person" size={14} color="#fff" />
-          <Text style={styles.roleText}>Jugador</Text>
-        </View>
+      <View style={styles.background}>
+        <View style={[styles.bubble, styles.bubble1]} />
+        <View style={[styles.bubble, styles.bubble2]} />
+        <View style={[styles.bubble, styles.bubble3]} />
+        <View style={[styles.bubble, styles.bubble4]} />
       </View>
 
-      <ScrollView style={styles.scrollContent}>
-        <View style={styles.eventsContainer}>
-          <Text style={styles.sectionTitle}>Próximos Eventos</Text>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.userInfo}>
+              <View style={styles.avatarContainer}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {user?.nombre?.charAt(0)}
+                    {user?.apellido?.charAt(0)}
+                  </Text>
+                </View>
+                <View />
+              </View>
+              <View style={styles.userText}>
+                <Text style={styles.greeting}>¡Hola de nuevo!</Text>
+                <Text style={styles.userName}>
+                  {user?.nombre} {user?.apellido}
+                </Text>
+                <View style={styles.roleBadge}>
+                  <Ionicons name="person" size={12} color="#FFFFFF" />
+                  <Text style={styles.roleText}>Jugador</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.eventsSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="time" size={20} color="#7C3AED" />
+              <Text style={styles.sectionTitle}>Próximos Eventos</Text>
+            </View>
+          </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <Ionicons name="refresh" size={24} color="#3f3db8ff" />
+              <View style={styles.loadingAnimation}>
+                <Ionicons name="refresh" size={32} color="#7C3AED" />
+              </View>
               <Text style={styles.loadingText}>Cargando eventos...</Text>
             </View>
           ) : nextEvents.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={40} color="#ccc" />
-              <Text style={styles.emptyText}>No hay eventos próximos</Text>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="calendar-outline" size={44} color="#9CA3AF" />
+              </View>
+              <Text style={styles.emptyTitle}>Sin eventos próximos</Text>
+              <Text style={styles.emptyDescription}>
+                Los próximos eventos aparecerán aquí
+              </Text>
             </View>
           ) : (
-            nextEvents.map((event, index) => {
-              const formattedDate = formatDate(event.fecha_hora);
-              const eventColor = getEventColor(
-                event.tipo_evento,
-                event.esEvento
-              );
+            <View style={styles.eventsContainer}>
+              {nextEvents.map((event, index) => {
+                const formattedDate = formatDate(event.fecha_hora);
+                const eventColor = getEventColor(
+                  event.tipo_evento,
+                  event.esEvento
+                );
 
-              return (
-                <TouchableOpacity key={event.id} style={styles.eventCard}>
-                  <View
-                    style={[styles.dateBadge, { backgroundColor: eventColor }]}
+                return (
+                  <TouchableOpacity
+                    key={event.id}
+                    style={styles.eventCard}
+                    activeOpacity={0.8}
                   >
-                    <Text style={styles.dateDay}>{formattedDate.day}</Text>
-                    <Text style={styles.dateMonth}>{formattedDate.month}</Text>
-                  </View>
+                    <View
+                      style={[
+                        styles.eventIndicator,
+                        { backgroundColor: eventColor },
+                      ]}
+                    />
 
-                  <View style={styles.eventContent}>
-                    <View style={styles.eventHeader}>
-                      <View style={styles.eventType}>
-                        <Ionicons
-                          name={getEventIcon(event.tipo_evento, event.esEvento)}
-                          size={16}
-                          color={eventColor}
-                        />
-                        <Text
-                          style={[styles.eventTypeText, { color: eventColor }]}
-                        >
-                          {event.esEvento ? event.tipo_evento : "Entrenamiento"}
-                        </Text>
-                      </View>
-                      <Text style={styles.eventTime}>{formattedDate.time}</Text>
-                    </View>
-
-                    <Text style={styles.eventTitle} numberOfLines={1}>
-                      {event.titulo}
-                    </Text>
-
-                    <View style={styles.eventLocation}>
-                      <Ionicons name="location" size={12} color="#666" />
-                      <Text style={styles.eventLocationText}>
-                        {event.lugar}
+                    <View style={styles.eventDate}>
+                      <Text style={styles.eventDay}>{formattedDate.day}</Text>
+                      <Text style={styles.eventMonth}>
+                        {formattedDate.month}
                       </Text>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
 
-        <View style={styles.featuresContainer}>
-          <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-          {features.map((feature, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.featureCard}
-              onPress={() => router.push(feature.route)}
-            >
-              <View style={styles.featureIconContainer}>
-                <Ionicons
-                  name={feature.icon as any}
-                  size={28}
-                  color="#3f3db8ff"
-                />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>
+                    <View style={styles.eventContent}>
+                      <View style={styles.eventHeader}>
+                        <View style={styles.eventType}>
+                          <View
+                            style={[
+                              styles.eventIcon,
+                              { backgroundColor: eventColor + "20" },
+                            ]}
+                          >
+                            <Ionicons
+                              name={getEventIcon(
+                                event.tipo_evento,
+                                event.esEvento
+                              )}
+                              size={16}
+                              color={eventColor}
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.eventTypeText,
+                              { color: eventColor },
+                            ]}
+                          >
+                            {event.esEvento
+                              ? event.tipo_evento
+                              : "Entrenamiento"}
+                          </Text>
+                        </View>
+                        <Text style={styles.eventTime}>
+                          {formattedDate.time}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.eventTitle} numberOfLines={2}>
+                        {event.titulo}
+                      </Text>
+
+                      <View style={styles.eventLocation}>
+                        <Ionicons name="location" size={14} color="#6B7280" />
+                        <Text style={styles.eventLocationText}>
+                          {event.lugar}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.eventArrow}>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#D1D5DB"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.actionsSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="flash" size={20} color="#7C3AED" />
+              <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionsGrid}>
+            {features.map((feature, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.actionCard}
+                onPress={() => router.push(feature.route)}
+                activeOpacity={0.9}
+              >
+                <View
+                  style={[
+                    styles.actionIconContainer,
+                    { backgroundColor: feature.color + "15" },
+                  ]}
+                >
+                  <Ionicons
+                    name={feature.icon as any}
+                    size={26}
+                    color={feature.color}
+                  />
+                </View>
+                <Text style={styles.actionTitle}>{feature.title}</Text>
+                <Text style={styles.actionDescription}>
                   {feature.description}
                 </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#ccc" />
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View
+                  style={[
+                    styles.actionArrow,
+                    { backgroundColor: feature.color + "20" },
+                  ]}
+                >
+                  <Ionicons
+                    name="arrow-forward"
+                    size={14}
+                    color={feature.color}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
@@ -266,109 +412,185 @@ export default function JugadorHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#FFFFFF",
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  bubble: {
+    position: "absolute",
+    borderRadius: 500,
+  },
+  bubble1: {
+    width: 220,
+    height: 220,
+    top: -80,
+    right: -60,
+    backgroundColor: "#F0F9FF",
+  },
+  bubble2: {
+    width: 180,
+    height: 180,
+    bottom: 120,
+    left: -70,
+    backgroundColor: "#FDF2F8",
+  },
+  bubble3: {
+    width: 120,
+    height: 120,
+    top: "35%",
+    right: 40,
+    backgroundColor: "#F0FDF4",
+  },
+  bubble4: {
+    width: 90,
+    height: 90,
+    bottom: 200,
+    right: 100,
+    backgroundColor: "#FAF5FF",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
-    backgroundColor: "#3f3db8ff",
-    padding: 20,
-    paddingTop: 15,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    alignItems: "center",
-    shadowColor: "#3f3db8ff",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingHorizontal: 28,
+    paddingTop: 40,
+    paddingBottom: 25,
   },
-  avatarContainer: {
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  welcome: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
-    textAlign: "center",
-    marginBottom: 4,
+  headerContent: {
+    alignItems: "flex-start",
   },
   userInfo: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    textAlign: "center",
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  avatarContainer: {
+    position: "relative",
+    marginRight: 16,
+  },
+  avatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#7C3AED",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#7C3AED",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  userText: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 15,
+    color: "#6B7280",
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#1F2937",
+    lineHeight: 30,
     marginBottom: 8,
   },
   roleBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 5,
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    gap: 4,
   },
   roleText: {
-    fontSize: 12,
-    color: "white",
-    fontWeight: "600",
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  eventsContainer: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15,
-  },
-  eventCard: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  dateBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  dateDay: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "white",
-  },
-  dateMonth: {
-    fontSize: 10,
-    color: "white",
+    fontSize: 11,
+    color: "#FFFFFF",
     fontWeight: "600",
     textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  eventsSection: {
+    marginBottom: 28,
+  },
+  actionsSection: {
+    marginBottom: 10,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingHorizontal: 28,
+  },
+  sectionTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F2937",
+    letterSpacing: -0.3,
+  },
+  eventsContainer: {
+    gap: 14,
+    paddingHorizontal: 28,
+  },
+  eventCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1.5,
+    borderColor: "#F3F4F6",
+    position: "relative",
+    overflow: "hidden",
+  },
+  eventIndicator: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  eventDate: {
+    width: 48,
+    alignItems: "center",
+    marginRight: 16,
+    marginLeft: 8,
+  },
+  eventDay: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 2,
+  },
+  eventMonth: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   eventContent: {
     flex: 1,
@@ -377,112 +599,154 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   eventType: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
+  },
+  eventIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    justifyContent: "center",
+    alignItems: "center",
   },
   eventTypeText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   eventTime: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
   },
   eventTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 8,
+    lineHeight: 20,
   },
   eventLocation: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   eventLocationText: {
-    fontSize: 11,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
   },
-  eventIndicator: {
+  eventArrow: {
+    marginLeft: 8,
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    gap: 14,
+  },
+  actionCard: {
+    width: (width - 84) / 2,
+    backgroundColor: "#FFFFFF",
+    padding: 22,
+    borderRadius: 18,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1.5,
+    borderColor: "#F3F4F6",
+    position: "relative",
+  },
+  actionIconContainer: {
+    width: 54,
+    height: 54,
+    borderRadius: 14,
+    justifyContent: "center",
     alignItems: "center",
-    marginLeft: 10,
+    marginBottom: 14,
   },
-
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 6,
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: "#6B7280",
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  actionArrow: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   loadingContainer: {
-    backgroundColor: "white",
-    padding: 30,
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    padding: 50,
+    borderRadius: 18,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginHorizontal: 28,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1.5,
+    borderColor: "#F3F4F6",
+  },
+  loadingAnimation: {
+    marginBottom: 12,
   },
   loadingText: {
     fontSize: 14,
-    color: "#666",
-    marginTop: 8,
+    color: "#6B7280",
+    fontWeight: "500",
   },
   emptyContainer: {
-    backgroundColor: "white",
-    padding: 40,
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    padding: 50,
+    borderRadius: 18,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginHorizontal: 28,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1.5,
+    borderColor: "#F3F4F6",
   },
-  emptyText: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 8,
+  emptyIcon: {
+    marginBottom: 16,
   },
-  featuresContainer: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  featureCard: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  featureIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: "rgba(63, 61, 184, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  featureContent: {
-    flex: 1,
-  },
-  featureTitle: {
+  emptyTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
+    color: "#374151",
+    fontWeight: "600",
+    marginBottom: 6,
   },
-  featureDescription: {
+  emptyDescription: {
     fontSize: 13,
-    color: "#666",
+    color: "#6B7280",
+    textAlign: "center",
     lineHeight: 18,
+  },
+  bottomSpacer: {
+    height: 30,
   },
 });

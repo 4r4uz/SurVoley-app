@@ -13,12 +13,17 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Image,
+  Dimensions,
+  Animated,
 } from "react-native";
 import { supabase } from "../../supabase/supabaseClient";
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
+
+const { width, height } = Dimensions.get("window");
+
 interface ValidationErrors {
   email?: string;
   password?: string;
@@ -36,6 +41,30 @@ const LoginScreen: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const { user, isAuthenticated, setUser } = useAuth();
   const router = useRouter();
+  
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideUpAnim = useState(new Animated.Value(30))[0];
+  const scaleAnim = useState(new Animated.Value(0.9))[0];
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 900,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   useEffect(() => {
     const keyboardDidShow = Keyboard.addListener("keyboardDidShow", () => {
@@ -96,7 +125,7 @@ const LoginScreen: React.FC = () => {
     if (!validateForm()) {
       return;
     }
-    44;
+
     setLoading(true);
 
     try {
@@ -178,89 +207,119 @@ const LoginScreen: React.FC = () => {
     handleLogin();
   };
 
+  const handleQuickLogin = (demoEmail: string, demoPassword: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+  };
+
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
+        {/* elementos del fondo */}
+        <View style={styles.background}>
+          <View style={[styles.circle, styles.circle1]} />
+          <View style={[styles.circle, styles.circle2]} />
+          <View style={[styles.circle, styles.circle3]} />
+        </View>
+
         <KeyboardAvoidingView
           style={styles.keyboardAvoid}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <ScrollView
+            contentContainerStyle={styles.scrollContainer}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            bounces={true}
           >
-            <View style={styles.header}>
-              <View>
-                <Image
-                  source={require("../../assets/icon.png")}
-                  resizeMode="contain"
-                  style={styles.logoContainer}
-                />
-              </View>
-              <Text style={styles.title}>SURVOLEY</Text>
-              <Text style={styles.subtitle}>Inicia sesión en tu cuenta</Text>
-            </View>
-            <View style={styles.formContainer}>
-              {/* Email Input */}
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Correo electrónico</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    validationErrors.email && styles.inputError,
-                  ]}
-                >
-                  <Ionicons
-                    name="mail-outline"
-                    size={20}
-                    color={validationErrors.email ? "#ef4444" : "#6b7280"}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="tu@email.com"
-                    placeholderTextColor="#9ca3af"
-                    value={email}
-                    onChangeText={(text) => {
-                      setEmail(text);
-                      if (validationErrors.email) {
-                        setValidationErrors((prev) => ({
-                          ...prev,
-                          email: undefined,
-                        }));
-                      }
-                    }}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    autoComplete="email"
-                    returnKeyType="next"
-                    editable={!loading}
+            {/* Header */}
+            <Animated.View 
+              style={[
+                styles.header,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateY: slideUpAnim },
+                    { scale: scaleAnim }
+                  ]
+                }
+              ]}
+            >
+              <View style={styles.logoWrapper}>
+                <View style={styles.logoContainer}>
+                  <Image
+                    source={require("../../assets/icon.png")}
+                    resizeMode="contain"
+                    style={styles.logo}
                   />
                 </View>
+                <View style={styles.logoGlow} />
+              </View>
+              <Text style={styles.title}>SURVOLEY</Text>
+              <Text style={styles.subtitle}>Accede a tu cuenta</Text>
+            </Animated.View>
+
+            {/* Form Section */}
+            <Animated.View 
+              style={[
+                styles.formContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateY: slideUpAnim }
+                  ]
+                }
+              ]}
+            >
+              {/* Email */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputHeader}>
+                  <Ionicons name="mail" size={16} color="#3B82F6" />
+                  <Text style={styles.inputLabel}>EMAIL</Text>
+                </View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    validationErrors.email && styles.inputError,
+                  ]}
+                  placeholder="tu@email.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (validationErrors.email) {
+                      setValidationErrors((prev) => ({
+                        ...prev,
+                        email: undefined,
+                      }));
+                    }
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  returnKeyType="next"
+                  editable={!loading}
+                />
                 {validationErrors.email && (
                   <Text style={styles.errorText}>{validationErrors.email}</Text>
                 )}
               </View>
 
-              {/* Password Input */}
+              {/* Password */}
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Contraseña</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    validationErrors.password && styles.inputError,
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={validationErrors.password ? "#ef4444" : "#6b7280"}
-                    style={styles.inputIcon}
-                  />
+                <View style={styles.inputHeader}>
+                  <Ionicons name="lock-closed" size={16} color="#3B82F6" />
+                  <Text style={styles.inputLabel}>CONTRASEÑA</Text>
+                </View>
+                <View style={styles.passwordContainer}>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      styles.passwordInput,
+                      validationErrors.password && styles.inputError,
+                    ]}
                     placeholder="••••••••"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor="#9CA3AF"
                     value={password}
                     onChangeText={(text) => {
                       setPassword(text);
@@ -283,88 +342,114 @@ const LoginScreen: React.FC = () => {
                     disabled={loading}
                   >
                     <Ionicons
-                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      name={showPassword ? "eye-off" : "eye"}
                       size={20}
-                      color="#6b7280"
+                      color="#6B7280"
                     />
                   </TouchableOpacity>
                 </View>
                 {validationErrors.password && (
-                  <Text style={styles.errorText}>
-                    {validationErrors.password}
-                  </Text>
+                  <Text style={styles.errorText}>{validationErrors.password}</Text>
                 )}
               </View>
 
-              {/* Recordarme Checkbox */}
-              <View style={styles.rememberMeContainer}>
-                <BouncyCheckbox
-                  size={20}
-                  fillColor="#3f3db8ff"
-                  unFillColor="#FFFFFF"
-                  text="Mantener sesión iniciada"
-                  iconStyle={{ borderColor: "#3f3db8ff", borderRadius: 4 }}
-                  innerIconStyle={{ borderWidth: 1.5, borderRadius: 4 }}
-                  textStyle={{
-                    fontFamily: "System",
-                    fontSize: 14,
-                    color: "#374151",
-                    textDecorationLine: "none",
-                  }}
-                  isChecked={rememberMe}
-                  useBuiltInState
-                  onPress={(isChecked: boolean) => setRememberMe(isChecked)}
-                  disabled={loading}
-                />
+              {/* Opciones */}
+              <View style={styles.optionsRow}>
+                <View style={styles.rememberContainer}>
+                  <BouncyCheckbox
+                    size={20}
+                    fillColor="#000000"
+                    unFillColor="#FFFFFF"
+                    text="Recordarme"
+                    iconStyle={{ 
+                      borderColor: "#D1D5DB", 
+                      borderRadius: 4,
+                      borderWidth: 2
+                    }}
+                    innerIconStyle={{ borderWidth: 0, borderRadius: 4 }}
+                    textStyle={{
+                      fontFamily: "System",
+                      fontSize: 14,
+                      color: "#374151",
+                      textDecorationLine: "none",
+                      fontWeight: "500",
+                    }}
+                    isChecked={rememberMe}
+                    useBuiltInState
+                    onPress={(isChecked: boolean) => setRememberMe(isChecked)}
+                    disabled={loading}
+                  />
+                </View>
+                <TouchableOpacity>
+                  <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Login Button */}
+              {/* botón iniciar sesión */}
               <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleSubmit}
                 disabled={loading}
-                activeOpacity={0.8}
+                activeOpacity={0.9}
               >
+                <View style={styles.buttonBackground} />
                 {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <View style={styles.buttonContent}>
-                    <Ionicons name="log-in-outline" size={20} color="#fff" />
-                    <Text style={styles.buttonText}>Iniciar Sesión</Text>
+                    <Text style={styles.buttonText}>ACCEDER</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                   </View>
                 )}
               </TouchableOpacity>
 
-              {/* Demo Credentials */}
-              <View style={styles.demoContainer}>
-                <Text style={styles.demoTitle}>Credenciales de Prueba</Text>
-                <View style={styles.demoItem}>
-                  <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>
-                    jugador@survoley.cl / jugador
-                  </Text>
+              {/* acceso rapido */}
+              <View style={styles.quickAccess}>
+                <View style={styles.quickAccessHeader}>
+                  <View style={styles.divider} />
+                  <Text style={styles.quickAccessText}>ACCESO RÁPIDO</Text>
+                  <View style={styles.divider} />
                 </View>
-                <View style={styles.demoItem}>
-                  <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>
-                    entrenador@survoley.cl / entrenador
-                  </Text>
+                
+                <View style={styles.demoButtons}>
+                  <TouchableOpacity 
+                    style={[styles.demoButton, styles.demoButton]}
+                    onPress={() => handleQuickLogin("jugador@survoley.cl", "jugador")}
+                    disabled={loading}
+                  >
+                    <Text style={styles.demoButtonText}>Jgdr</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.demoButton, styles.demoButton]}
+                    onPress={() => handleQuickLogin("entrenador@survoley.cl", "entrenador")}
+                    disabled={loading}
+                  >
+                    <Text style={styles.demoButtonText}>Entdr</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.demoButton, styles.demoButton]}
+                    onPress={() => handleQuickLogin("apoderado@survoley.cl", "apoderado")}
+                    disabled={loading}
+                  >
+                    <Text style={styles.demoButtonText}>Apdr</Text>  
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.demoButton, styles.demoButton]}
+                    onPress={() => handleQuickLogin("admin@survoley.cl", "admin")}
+                    disabled={loading}
+                  >
+                    <Text style={styles.demoButtonText}>Adm</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.demoItem}>
-                  <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>
-                    apoderado@survoley.cl / apoderado
-                  </Text>
-                </View>
-                <View style={styles.demoItem}>
-                  <Ionicons name="person" size={14} color="#3f3db8ff" />
-                  <Text style={styles.demoText}>admin@survoley.cl / admin</Text>
-                </View>
+
                 <Text style={styles.demoNote}>
-                  Usa estas credenciales para probar la aplicación
+                  Credenciales de prueba para desarrollo
                 </Text>
               </View>
-            </View>
+            </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
@@ -375,178 +460,260 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#FFFFFF",
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  circle: {
+    position: 'absolute',
+    borderRadius: 500,
+    backgroundColor: '#F3F4F6',
+  },
+  circle1: {
+    width: 300,
+    height: 300,
+    top: -150,
+    right: -100,
+  },
+  circle2: {
+    width: 200,
+    height: 200,
+    bottom: -50,
+    left: -50,
+  },
+  circle3: {
+    width: 150,
+    height: 150,
+    top: '30%',
+    left: -75,
   },
   keyboardAvoid: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   header: {
-    backgroundColor: "#3f3db8ff",
-    paddingVertical: 40,
-    paddingHorizontal: 30,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-    alignItems: "center",
-    shadowColor: "#3f3db8ff",
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 15,
-    marginTop: 0,
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingTop: height * 0.01,
+    paddingBottom: 40,
+  },
+  logoWrapper: {
+    position: 'relative',
+    marginBottom: 20,
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+    zIndex: 2,
+    aspectRatio: 1
+  },
+  logoGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#000000',
+    opacity: 0.1,
+    top: -10,
+    left: -10,
+    zIndex: 1,
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontSize: 36,
-    fontWeight: "800",
-    color: "#fff",
+    fontWeight: '900',
+    color: '#000000',
     marginBottom: 8,
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.9)",
-    fontWeight: "500",
+    color: '#6B7280',
+    fontWeight: '500',
+    letterSpacing: 1,
   },
   formContainer: {
-    backgroundColor: "white",
-    margin: 20,
-    marginTop: -20,
-    padding: 18,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    padding: 32,
     borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 25,
-    elevation: 10,
-  },
-  formTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1f2937",
-    marginBottom: 25,
-    textAlign: "center",
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 15,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   inputWrapper: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f9fafb",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#e5e7eb",
-  },
-  inputError: {
-    borderColor: "#ef4444",
-  },
-  inputIcon: {
-    padding: 16,
-  },
-  input: {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  eyeIcon: {
-    padding: 16,
-  },
-  rememberMeContainer: {
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: "#f8f9fa",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-
-  button: {
-    backgroundColor: "#3f3db8ff",
-    padding: 18,
-    borderRadius: 14,
-    marginTop: 10,
-    shadowColor: "#3f3db8ff",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  demoContainer: {
-    marginTop: 25,
-    padding: 20,
-    backgroundColor: "#f8f9fa",
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#3f3db8ff",
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 12,
-    color: "#333",
-    textAlign: "center",
-  },
-  demoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+  inputHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     marginBottom: 8,
   },
-  demoText: {
-    fontSize: 13,
-    color: "#666",
-    textAlign: "center",
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  input: {
+    backgroundColor: '#F9FAFB',
+    padding: 20,
+    borderRadius: 16,
+    fontSize: 16,
+    color: '#1F2937',
+    fontWeight: '500',
+    borderWidth: 2,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 60,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 20,
+    top: 20,
+    zIndex: 1,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  rememberContainer: {
+    flex: 1,
+  },
+  forgotPassword: {
+    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
+  button: {
+    backgroundColor: '#000000',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 30,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  buttonBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  quickAccess: {
+    marginTop: 10,
+  },
+  quickAccessHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  quickAccessText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    marginHorizontal: 12,
+    letterSpacing: 1,
+  },
+  demoButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  demoButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    backgroundColor: '#3B82F6'
+  },
+  demoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   demoNote: {
     fontSize: 11,
-    color: "#999",
-    textAlign: "center",
-    fontStyle: "italic",
-    marginTop: 8,
-  },
-  errorText: {
-    color: "#ef4444",
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
