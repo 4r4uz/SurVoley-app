@@ -5,8 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
   Alert,
+  Linking,
 } from "react-native";
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
@@ -15,10 +15,6 @@ import { Ionicons } from "@expo/vector-icons";
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
-
-  const [notifications, setNotifications] = useState(true);
-  const [emailUpdates, setEmailUpdates] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
 
   const handleSignOut = async () => {
     Alert.alert("Cerrar Sesión", "¿Estás seguro de que deseas cerrar sesión?", [
@@ -43,6 +39,14 @@ export default function SettingsScreen() {
     Alert.alert("Editar Perfil", "Funcionalidad en desarrollo");
   };
 
+  const handleContactEmail = () => {
+    Linking.openURL("mailto:admin@clubdeportivo.com?subject=Consulta%20desde%20la%20App");
+  };
+
+  const handleContactPhone = () => {
+    Linking.openURL("tel:+56912345678");
+  };
+
   const settingsSections = [
     {
       title: "Cuenta",
@@ -64,65 +68,20 @@ export default function SettingsScreen() {
       ],
     },
     {
-      title: "Notificaciones",
-      icon: "notifications",
+      title: "Contacto",
+      icon: "chatbubble-ellipses",
       items: [
         {
-          title: "Notificaciones",
-          subtitle: "Recibir notificaciones en el dispositivo",
-          icon: "phone-portrait",
-          type: "switch",
-          value: notifications,
-          onValueChange: setNotifications,
-        },
-        {
-          title: "Actualizaciones por Email",
-          subtitle: "Recibir novedades por correo electrónico",
+          title: "Email de Administración",
+          subtitle: "admin@survoley.cl",
           icon: "mail",
-          type: "switch",
-          value: emailUpdates,
-          onValueChange: setEmailUpdates,
-        },
-      ],
-    },
-    {
-      title: "Preferencias",
-      icon: "settings",
-      items: [
-        {
-          title: "Modo Oscuro",
-          subtitle: "Activar interfaz en modo oscuro",
-          icon: "moon",
-          type: "switch",
-          value: darkMode,
-          onValueChange: setDarkMode,
+          action: handleContactEmail,
         },
         {
-          title: "Privacidad",
-          subtitle: "Configuración de privacidad y datos",
-          icon: "shield-checkmark",
-          action: () =>
-            Alert.alert("Privacidad", "Funcionalidad en desarrollo"),
-        },
-      ],
-    },
-    {
-      title: "Soporte",
-      icon: "help-buoy",
-      items: [
-        {
-          title: "Centro de Ayuda",
-          subtitle: "Preguntas frecuentes y soporte",
-          icon: "help-circle",
-          action: () =>
-            Alert.alert("Centro de Ayuda", "Funcionalidad en desarrollo"),
-        },
-        {
-          title: "Reportar Problema",
-          subtitle: "Informar sobre un error o problema",
-          icon: "bug",
-          action: () =>
-            Alert.alert("Reportar Problema", "Funcionalidad en desarrollo"),
+          title: "Teléfono de Contacto",
+          subtitle: "+56 9 1234 5678",
+          icon: "call",
+          action: handleContactPhone,
         },
       ],
     },
@@ -164,7 +123,6 @@ export default function SettingsScreen() {
                 key={itemIndex}
                 style={styles.settingItem}
                 onPress={item.action}
-                disabled={item.type === "switch"}
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.settingIcon}>
@@ -181,19 +139,7 @@ export default function SettingsScreen() {
                 </View>
 
                 <View style={styles.settingRight}>
-                  {item.type === "switch" ? (
-                    <Switch
-                      value={item.value}
-                      onValueChange={item.onValueChange}
-                      trackColor={{
-                        false: "#f0f0f0",
-                        true: "rgba(63, 61, 184, 0.3)",
-                      }}
-                      thumbColor={item.value ? "#3f3db8ff" : "#f4f3f4"}
-                    />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                  )}
+                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -209,9 +155,9 @@ export default function SettingsScreen() {
 
       {/* Información de la App */}
       <View style={styles.appInfo}>
-        <Text style={styles.appVersion}>SURVOLEY APP v0.00000000001</Text>
+        <Text style={styles.appVersion}>SURVOLEY APP v1.0.0</Text>
         <Text style={styles.appCopyright}>
-          © 2024 Todos los derechos reservados
+          © 2024 Club Deportivo. Todos los derechos reservados
         </Text>
       </View>
     </ScrollView>

@@ -216,7 +216,7 @@ const AttendanceCard = React.memo(({ item }: { item: AttendanceItem }) => {
 
         <View style={styles.cardContent}>
           <Text style={styles.sessionName}>
-            {item.titulo || item.tipo_evento || "Sesión de entrenamiento"}
+            {item.titulo || item.descripcion || item.tipo_evento || "Sesión de entrenamiento"}
           </Text>
 
           <View style={styles.sessionMeta}>
@@ -228,6 +228,16 @@ const AttendanceCard = React.memo(({ item }: { item: AttendanceItem }) => {
               <Ionicons name="location" size={14} color="#6B7280" />
               <Text style={styles.metaText}>
                 {item.lugar || item.ubicacion || "Lugar no especificado"}
+              </Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons 
+                name={item.tipo_evento === "Entrenamiento" ? "basketball" : "trophy"} 
+                size={14} 
+                color="#6B7280" 
+              />
+              <Text style={styles.metaText}>
+                {item.tipo_evento || "Actividad"}
               </Text>
             </View>
           </View>
@@ -325,7 +335,7 @@ export default function MiAsistenciaScreen() {
         )
         .eq("id_jugador", user.id)
         .order("fecha_asistencia", { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (error) {
         console.error("Error cargando asistencias:", error);
@@ -396,6 +406,20 @@ export default function MiAsistenciaScreen() {
     (item) => item.estado_asistencia !== "Sin registro"
   );
 
+  const entrenamientos = relevantAttendanceData.filter(
+    item => item.tipo_evento === "Entrenamiento"
+  );
+  const torneos = relevantAttendanceData.filter(
+    item => item.tipo_evento === "Torneo"
+  );
+  const partidos = relevantAttendanceData.filter(
+    item => item.tipo_evento === "Partido"
+  );
+  const otrosEventos = relevantAttendanceData.filter(
+    item => !["Entrenamiento", "Torneo", "Partido"].includes(item.tipo_evento || "")
+  );
+
+  // Estadísticas generales
   const totalSessions = relevantAttendanceData.length;
   const presentSessions = relevantAttendanceData.filter(
     (item) => item.estado_asistencia === "Presente"
@@ -407,12 +431,32 @@ export default function MiAsistenciaScreen() {
     (item) => item.estado_asistencia === "Justificado"
   ).length;
 
+  // Estadísticas por tipo
+  const entrenamientosPresentes = entrenamientos.filter(
+    item => item.estado_asistencia === "Presente"
+  ).length;
+  const torneosPresentes = torneos.filter(
+    item => item.estado_asistencia === "Presente"
+  ).length;
+  const partidosPresentes = partidos.filter(
+    item => item.estado_asistencia === "Presente"
+  ).length;
+
   const attendanceRate =
     totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
 
+  const entrenamientosRate = entrenamientos.length > 0 ? 
+    Math.round((entrenamientosPresentes / entrenamientos.length) * 100) : 0;
+  
+  const torneosRate = torneos.length > 0 ? 
+    Math.round((torneosPresentes / torneos.length) * 100) : 0;
+  
+  const partidosRate = partidos.length > 0 ? 
+    Math.round((partidosPresentes / partidos.length) * 100) : 0;
+
   const displayedRecords = showAllRecords
     ? relevantAttendanceData
-    : relevantAttendanceData.slice(0, 3);
+    : relevantAttendanceData.slice(0, 5);
 
   if (loading) {
     return (
@@ -493,7 +537,7 @@ export default function MiAsistenciaScreen() {
           {/* Porcentaje de Asistencia */}
           <View style={styles.attendanceRate}>
             <View style={styles.rateHeader}>
-              <Text style={styles.rateTitle}>Tu Asistencia</Text>
+              <Text style={styles.rateTitle}>Tu Asistencia General</Text>
               <Text style={styles.ratePercentage}>{attendanceRate}%</Text>
             </View>
             <View style={styles.rateBar}>
@@ -511,6 +555,39 @@ export default function MiAsistenciaScreen() {
                   },
                 ]}
               />
+            </View>
+          </View>
+
+          {/* Estadísticas por Tipo */}
+          <View style={styles.typeStats}>
+            <Text style={styles.typeStatsTitle}>Asistencia por Tipo</Text>
+            <View style={styles.typeStatsGrid}>
+              <View style={styles.typeStat}>
+                <View style={styles.typeStatHeader}>
+                  <Ionicons name="basketball" size={16} color="#2563EB" />
+                  <Text style={styles.typeStatLabel}>Entrenamientos</Text>
+                </View>
+                <Text style={styles.typeStatValue}>{entrenamientosRate}%</Text>
+                <Text style={styles.typeStatCount}>({entrenamientosPresentes}/{entrenamientos.length})</Text>
+              </View>
+              
+              <View style={styles.typeStat}>
+                <View style={styles.typeStatHeader}>
+                  <Ionicons name="trophy" size={16} color="#F59E0B" />
+                  <Text style={styles.typeStatLabel}>Torneos</Text>
+                </View>
+                <Text style={styles.typeStatValue}>{torneosRate}%</Text>
+                <Text style={styles.typeStatCount}>({torneosPresentes}/{torneos.length})</Text>
+              </View>
+              
+              <View style={styles.typeStat}>
+                <View style={styles.typeStatHeader}>
+                  <Ionicons name="flag" size={16} color="#EF4444" />
+                  <Text style={styles.typeStatLabel}>Partidos</Text>
+                </View>
+                <Text style={styles.typeStatValue}>{partidosRate}%</Text>
+                <Text style={styles.typeStatCount}>({partidosPresentes}/{partidos.length})</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -693,6 +770,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1,
     borderColor: "#F3F4F6",
+    marginBottom: 16,
   },
   rateHeader: {
     flexDirection: "row",
@@ -719,6 +797,59 @@ const styles = StyleSheet.create({
   rateFill: {
     height: "100%",
     borderRadius: 4,
+  },
+  typeStats: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  typeStatsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 12,
+  },
+  typeStatsGrid: {
+    gap: 12,
+  },
+  typeStat: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  typeStatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  typeStatLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  typeStatValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    minWidth: 50,
+    textAlign: "right",
+  },
+  typeStatCount: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    minWidth: 80,
+    textAlign: "right",
   },
   nextSessionCard: {
     backgroundColor: "#EFF6FF",

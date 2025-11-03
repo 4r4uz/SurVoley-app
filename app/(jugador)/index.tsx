@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  RefreshControl,
 } from "react-native";
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
@@ -29,6 +30,7 @@ export default function JugadorHome() {
   const router = useRouter();
   const [nextEvents, setNextEvents] = useState<NextEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideUpAnim = useState(new Animated.Value(25))[0];
@@ -143,7 +145,27 @@ export default function JugadorHome() {
       console.error("Error fetching events:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNextEvents();
+    
+    // Reiniciar animaciones al recargar
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const formatDate = (dateString: string) => {
@@ -189,6 +211,16 @@ export default function JugadorHome() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#7C3AED"]}
+            tintColor="#7C3AED"
+            title="Actualizando..."
+            titleColor="#6B7280"
+          />
+        }
       >
         <Animated.View
           style={[
@@ -238,6 +270,14 @@ export default function JugadorHome() {
               <Ionicons name="time" size={20} color="#7C3AED" />
               <Text style={styles.sectionTitle}>Próximos Eventos</Text>
             </View>
+            <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+              <Ionicons 
+                name="refresh" 
+                size={18} 
+                color="#7C3AED" 
+                style={refreshing ? styles.refreshingIcon : null}
+              />
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -256,6 +296,9 @@ export default function JugadorHome() {
               <Text style={styles.emptyDescription}>
                 Los próximos eventos aparecerán aquí
               </Text>
+              <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+                <Text style={styles.retryButtonText}>Reintentar</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.eventsContainer}>
@@ -546,6 +589,12 @@ const styles = StyleSheet.create({
     color: "#1F2937",
     letterSpacing: -0.3,
   },
+  refreshButton: {
+    padding: 8,
+  },
+  refreshingIcon: {
+    transform: [{ rotate: "180deg" }],
+  },
   eventsContainer: {
     gap: 14,
     paddingHorizontal: 28,
@@ -745,6 +794,18 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
     lineHeight: 18,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
   bottomSpacer: {
     height: 30,
