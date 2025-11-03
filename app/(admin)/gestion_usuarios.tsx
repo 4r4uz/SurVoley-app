@@ -362,6 +362,7 @@ export default function GestionUsuariosScreen() {
     cargarUsuarios();
   };
 
+  // CREAR USUARIO
   const crearNuevoUsuario = async () => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formulario.correo.trim(),
@@ -388,6 +389,7 @@ export default function GestionUsuariosScreen() {
         rol: formulario.rol,
         estado_cuenta: formulario.estado_cuenta,
         auth_id: authData.user.id,
+        password: formulario.nuevaPassword
       });
 
     if (errorUsuario) throw errorUsuario;
@@ -529,6 +531,8 @@ export default function GestionUsuariosScreen() {
     setModalVisible(true);
   };
 
+  //hola
+
   const abrirModalNuevoUsuario = () => {
     setUsuarioSeleccionado(null);
     setEditando(false);
@@ -659,7 +663,7 @@ const renderCampoFormulario = (
           formulario.posicion || '',
           (text) => setFormulario(prev => ({ ...prev, posicion: text })),
           'general',
-          'Delantero, Defensa, etc.',
+          'Posición del jugador',
           'text',
           false,
         )}
