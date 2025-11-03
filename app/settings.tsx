@@ -8,13 +8,24 @@ import {
   Alert,
   Linking,
 } from "react-native";
-import { useAuth } from "../../types/use.auth";
+import { useAuth } from "../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import SafeLayout from "../components/safearea";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+
+  const getRoleName = (role: string) => {
+    const roles: { [key: string]: string } = {
+      admin: "Administrador",
+      jugador: "Jugador",
+      entrenador: "Entrenador",
+      apoderado: "Apoderado",
+    };
+    return roles[role] || "Usuario";
+  };
 
   const handleSignOut = async () => {
     Alert.alert("Cerrar Sesión", "¿Estás seguro de que deseas cerrar sesión?", [
@@ -40,14 +51,16 @@ export default function SettingsScreen() {
   };
 
   const handleContactEmail = () => {
-    Linking.openURL("mailto:admin@clubdeportivo.com?subject=Consulta%20desde%20la%20App");
+    Linking.openURL(
+      "mailto:admin@clubdeportivo.com?subject=Consulta%20desde%20la%20App"
+    );
   };
 
   const handleContactPhone = () => {
     Linking.openURL("tel:+56912345678");
   };
 
-  const settingsSections = [
+  const baseSettingsSections = [
     {
       title: "Cuenta",
       icon: "person",
@@ -87,80 +100,96 @@ export default function SettingsScreen() {
     },
   ];
 
+  const allSettingsSections = [
+    ...baseSettingsSections,
+  ];
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header de Usuario */}
-      <View style={styles.userHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user?.nombre?.charAt(0)}
-            {user?.apellido?.charAt(0)}
+    <SafeLayout>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header de Usuario */}
+        <View style={styles.userHeader}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {user?.nombre?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+              {user?.apellido?.charAt(0)}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>
+              {user?.nombre
+                ? `${user.nombre} ${user.apellido || ""}`
+                : user?.email}
+            </Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <View style={styles.roleBadge}>
+              <Ionicons name="person" size={12} color="#fff" />
+              <Text style={styles.roleText}>
+                {user?.rol ? getRoleName(user.rol) : "Usuario"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Secciones de Configuración */}
+        {allSettingsSections.map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons
+                name={section.icon as any}
+                size={20}
+                color="#3f3db8ff"
+              />
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+            </View>
+
+            <View style={styles.sectionContent}>
+              {section.items.map((item, itemIndex) => (
+                <TouchableOpacity
+                  key={itemIndex}
+                  style={styles.settingItem}
+                  onPress={item.action}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Ionicons
+                        name={item.icon as any}
+                        size={22}
+                        color="#3f3db8ff"
+                      />
+                    </View>
+                    <View style={styles.settingText}>
+                      <Text style={styles.settingTitle}>{item.title}</Text>
+                      <Text style={styles.settingSubtitle}>
+                        {item.subtitle}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.settingRight}>
+                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
+
+        {/* Botón de Cerrar Sesión */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+          <Ionicons name="log-out" size={20} color="#dc3545" />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
+
+        {/* Información de la App */}
+        <View style={styles.appInfo}>
+          <Text style={styles.appVersion}>SURVOLEY APP v1.0.0</Text>
+          <Text style={styles.appCopyright}>
+            © 2024 Club Deportivo. Todos los derechos reservados
           </Text>
         </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>
-            {user?.nombre} {user?.apellido}
-          </Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          <View style={styles.roleBadge}>
-            <Ionicons name="person" size={12} color="#fff" />
-            <Text style={styles.roleText}>Jugador</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Secciones de Configuración */}
-      {settingsSections.map((section, sectionIndex) => (
-        <View key={sectionIndex} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name={section.icon as any} size={20} color="#3f3db8ff" />
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-          </View>
-
-          <View style={styles.sectionContent}>
-            {section.items.map((item, itemIndex) => (
-              <TouchableOpacity
-                key={itemIndex}
-                style={styles.settingItem}
-                onPress={item.action}
-              >
-                <View style={styles.settingLeft}>
-                  <View style={styles.settingIcon}>
-                    <Ionicons
-                      name={item.icon as any}
-                      size={22}
-                      color="#3f3db8ff"
-                    />
-                  </View>
-                  <View style={styles.settingText}>
-                    <Text style={styles.settingTitle}>{item.title}</Text>
-                    <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.settingRight}>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      ))}
-
-      {/* Botón de Cerrar Sesión */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out" size={20} color="#dc3545" />
-        <Text style={styles.logoutText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
-
-      {/* Información de la App */}
-      <View style={styles.appInfo}>
-        <Text style={styles.appVersion}>SURVOLEY APP v1.0.0</Text>
-        <Text style={styles.appCopyright}>
-          © 2024 Club Deportivo. Todos los derechos reservados
-        </Text>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeLayout>
   );
 }
 

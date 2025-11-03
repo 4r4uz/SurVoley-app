@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Dimensions,
+  Animated,
+  RefreshControl,
 } from "react-native";
-import { useAuth } from '../../types/use.auth';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../supabase/supabaseClient';
-import GestionUsuarios from './gestion_usuarios';
+import { useAuth } from "../../types/use.auth";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../../supabase/supabaseClient";
+
+const { width, height } = Dimensions.get("window");
 
 interface Estadisticas {
   totalUsuarios: number;
@@ -25,37 +29,47 @@ interface Estadisticas {
 }
 
 export default function AdminScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideUpAnim = useState(new Animated.Value(25))[0];
 
   const cargarEstadisticas = async () => {
     try {
       setCargando(true);
 
       const { data: usuarios, error: errorUsuarios } = await supabase
-        .from('Usuarios')
-        .select('rol, estado_cuenta');
+        .from("Usuarios")
+        .select("rol, estado_cuenta");
 
       const { data: mensualidades, error: errorMensualidades } = await supabase
-        .from('Mensualidad')
-        .select('monto, estado_pago');
+        .from("Mensualidad")
+        .select("monto, estado_pago");
 
       if (errorUsuarios || errorMensualidades) {
-        throw new Error('Error al cargar estadísticas');
+        throw new Error("Error al cargar estadísticas");
       }
 
       const totalUsuarios = usuarios?.length || 0;
-      const totalJugadores = usuarios?.filter(u => u.rol === 'jugador').length || 0;
-      const totalApoderados = usuarios?.filter(u => u.rol === 'apoderado').length || 0;
-      const totalEntrenadores = usuarios?.filter(u => u.rol === 'entrenador').length || 0;
-      
-      const mensualidadesPagadas = mensualidades?.filter(m => m.estado_pago === 'Pagado').length || 0;
-      const mensualidadesPendientes = mensualidades?.filter(m => m.estado_pago === 'Pendiente').length || 0;
-      const totalRecaudado = mensualidades
-        ?.filter(m => m.estado_pago === 'Pagado')
-        .reduce((sum, m) => sum + (m.monto || 0), 0) || 0;
+      const totalJugadores =
+        usuarios?.filter((u) => u.rol === "jugador").length || 0;
+      const totalApoderados =
+        usuarios?.filter((u) => u.rol === "apoderado").length || 0;
+      const totalEntrenadores =
+        usuarios?.filter((u) => u.rol === "entrenador").length || 0;
+
+      const mensualidadesPagadas =
+        mensualidades?.filter((m) => m.estado_pago === "Pagado").length || 0;
+      const mensualidadesPendientes =
+        mensualidades?.filter((m) => m.estado_pago === "Pendiente").length || 0;
+      const totalRecaudado =
+        mensualidades
+          ?.filter((m) => m.estado_pago === "Pagado")
+          .reduce((sum, m) => sum + (m.monto || 0), 0) || 0;
 
       setEstadisticas({
         totalUsuarios,
@@ -64,177 +78,341 @@ export default function AdminScreen() {
         totalEntrenadores,
         mensualidadesPagadas,
         mensualidadesPendientes,
-        totalRecaudado
+        totalRecaudado,
       });
-
     } catch (error: any) {
-      Alert.alert('Error', 'No se pudieron cargar las estadísticas');
+      Alert.alert("Error", "No se pudieron cargar las estadísticas");
     } finally {
       setCargando(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     cargarEstadisticas();
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      "Cerrar Sesión",
-      "¿Estás seguro de que deseas cerrar sesión?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Cerrar Sesión", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cerrar la sesión');
-            }
-          }
-        }
-      ]
-    );
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarEstadisticas();
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const adminFeatures = [
     {
-      title: 'Gestión de Usuarios',
-      icon: 'people',
-      description: 'Administrar jugadores, entrenadores y apoderados',
-      color: '#3f3db8ff',
-      route: '/(admin)/gestion_usuarios'
+      title: "Gestión de Usuarios",
+      icon: "people",
+      description: "Administrar usuarios del sistema",
+      route: "/(admin)/gestion_usuarios",
+      color: "#2563EB",
+      lightColor: "#2563EB",
     },
     {
-      title: 'Control de Asistencias',
-      icon: 'calendar',
-      description: 'Ver y administrar asistencias de todos los jugadores',
-      color: '#4CAF50',
-      route: '/(admin)/gestion_usuarios'
+      title: "Control de Asistencias",
+      icon: "calendar",
+      description: "Registro y control de asistencias",
+      route: "/(admin)/gestion_asistencias",
+      color: "#059669",
+      lightColor: "#059669",
     },
     {
-      title: 'Gestión de Pagos',
-      icon: 'card',
-      description: 'Administrar mensualidades y estados de pago',
-      color: '#FF9800',
-      route: '/(admin)/gestion_usuarios'
+      title: "Gestión de Pagos",
+      icon: "card",
+      description: "Administrar pagos y mensualidades",
+      route: "/(admin)/gestion_pagos",
+      color: "#DC2626",
+      lightColor: "#DC2626",
     },
     {
-      title: 'Reportes y Estadísticas',
-      icon: 'stats-chart',
-      description: 'Ver reportes de uso y rendimiento',
-      color: '#9C27B0',
-      route: '/(admin)/gestion_usuarios'
+      title: "Reportes",
+      icon: "stats-chart",
+      description: "Reportes y análisis del sistema",
+      route: "/(admin)/reportes",
+      color: "#7C3AED",
+      lightColor: "#7C3AED",
     },
     {
-      title: 'Configuración del Sistema',
-      icon: 'settings',
-      description: 'Configurar parámetros de la aplicación',
-      color: '#607D8B',
-      route: '/(admin)/gestion_usuarios'
+      title: "Mensualidades",
+      icon: "add-circle",
+      description: "Generar mensualidades",
+      route: "/(admin)/mensualidades",
+      color: "#8B5CF6",
+      lightColor: "#8B5CF6",
     },
     {
-      title: 'Generar Mensualidades',
-      icon: 'add-circle',
-      description: 'Generar mensualidades del mes actual',
-      color: '#2196F3',
-      route: '/(admin)/gestion_usuarios'
-    }
+      title: "Configuración",
+      icon: "settings",
+      description: "Ajustes del sistema",
+      route: "/settings",
+      color: "#D97706",
+      lightColor: "#D97706",
+    },
   ];
 
   const formatearMonto = (monto: number) => {
-    return `$${monto.toLocaleString('es-CL')}`;
+    return `$${monto.toLocaleString("es-CL")}`;
   };
 
   if (cargando) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#3f3db8ff" />
-        <Text style={styles.loadingText}>Cargando panel de administración...</Text>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingAnimation}>
+            <Ionicons name="shield" size={32} color="#1E40AF" />
+          </View>
+          <Text style={styles.loadingText}>
+            Cargando panel administrativo...
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.nombre?.charAt(0)}{user?.apellido?.charAt(0)}
-            </Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.welcome}>Panel de Administración</Text>
-            <Text style={styles.userName}>{user?.nombre} {user?.apellido}</Text>
-            <View style={styles.roleBadge}>
-              <Ionicons name="shield" size={14} color="#fff" />
-              <Text style={styles.roleText}>Administrador</Text>
+      <View style={styles.background}>
+        <View style={[styles.bubble, styles.bubble1]} />
+        <View style={[styles.bubble, styles.bubble2]} />
+        <View style={[styles.bubble, styles.bubble3]} />
+        <View style={[styles.bubble, styles.bubble4]} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#1E40AF"]}
+            tintColor="#1E40AF"
+            title="Actualizando..."
+            titleColor="#6B7280"
+          />
+        }
+      >
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.userInfo}>
+              <View style={styles.avatarContainer}>
+                <View style={styles.avatar}>
+                  <Ionicons name="shield" size={24} color="#FFFFFF" />
+                </View>
+              </View>
+              <View style={styles.userText}>
+                <Text style={styles.greeting}>Panel de Control</Text>
+                <Text style={styles.userName}>
+                  {user?.nombre} {user?.apellido}
+                </Text>
+                <View style={styles.roleBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
+                  <Text style={styles.roleText}>Administrador del Sistema</Text>
+                </View>
+              </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Estadísticas */}
-        {estadisticas && (
-          <View style={styles.statsContainer}>
-            <Text style={styles.sectionTitle}>Estadísticas Generales</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Ionicons name="people" size={24} color="#3f3db8ff" />
-                <Text style={styles.statNumber}>{estadisticas.totalUsuarios}</Text>
-                <Text style={styles.statLabel}>Total Usuarios</Text>
+        <Animated.View
+          style={[
+            styles.statsSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="analytics" size={22} color="#1E40AF" />
+              <Text style={styles.sectionTitle}>Métricas del Sistema</Text>
+            </View>
+            <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+              <Ionicons
+                name="refresh"
+                size={18}
+                color="#1E40AF"
+                style={refreshing ? styles.refreshingIcon : null}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statRow}>
+              <View style={[styles.statCard, styles.statCardPrimary]}>
+                <View style={styles.statHeader}>
+                  <Ionicons name="people" size={20} color="#1E40AF" />
+                  <Text style={styles.statLabel}>Total Usuarios</Text>
+                </View>
+                <Text style={styles.statNumber}>
+                  {estadisticas?.totalUsuarios || 0}
+                </Text>
+                <View style={styles.statSubtext}>
+                  <Ionicons name="trending-up" size={14} color="#059669" />
+                  <Text style={styles.statTrend}>Sistema activo</Text>
+                </View>
               </View>
-              <View style={styles.statCard}>
-                <Ionicons name="person" size={24} color="#4CAF50" />
-                <Text style={styles.statNumber}>{estadisticas.totalJugadores}</Text>
-                <Text style={styles.statLabel}>Jugadores</Text>
+
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <View style={styles.statHeader}>
+                  <Ionicons name="card" size={20} color="#059669" />
+                  <Text style={styles.statLabel}>Pagos del Mes</Text>
+                </View>
+                <Text style={styles.statNumber}>
+                  {estadisticas?.mensualidadesPagadas || 0}
+                </Text>
+                <View style={styles.statSubtext}>
+                  <Text style={styles.statSubLabel}>
+                    Pendientes: {estadisticas?.mensualidadesPendientes || 0}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.statCard}>
-                <Ionicons name="card" size={24} color="#FF9800" />
-                <Text style={styles.statNumber}>{estadisticas.mensualidadesPagadas}</Text>
-                <Text style={styles.statLabel}>Pagos</Text>
+            </View>
+
+            <View style={styles.statRow}>
+              <View style={[styles.statCard, styles.statCardWarning]}>
+                <View style={styles.statHeader}>
+                  <Ionicons name="cash" size={20} color="#D97706" />
+                  <Text style={styles.statLabel}>Recaudación Total</Text>
+                </View>
+                <Text style={styles.statNumber}>
+                  {estadisticas?.totalRecaudado
+                    ? formatearMonto(estadisticas.totalRecaudado)
+                    : "$0"}
+                </Text>
+                <View style={styles.statSubtext}>
+                  <Ionicons name="business" size={14} color="#D97706" />
+                  <Text style={styles.statTrend}>Balance general</Text>
+                </View>
               </View>
-              <View style={styles.statCard}>
-                <Ionicons name="cash" size={24} color="#9C27B0" />
-                <Text style={styles.statNumber}>{formatearMonto(estadisticas.totalRecaudado)}</Text>
-                <Text style={styles.statLabel}>Recaudado</Text>
+
+              <View style={[styles.statCard, styles.statCardInfo]}>
+                <View style={styles.statHeader}>
+                  <Ionicons name="person" size={20} color="#7C3AED" />
+                  <Text style={styles.statLabel}>Distribución</Text>
+                </View>
+                <View style={styles.distribution}>
+                  <View style={styles.distItem}>
+                    <Text style={styles.distLabel}>Jugadores</Text>
+                    <Text style={styles.distValue}>
+                      {estadisticas?.totalJugadores || 0}
+                    </Text>
+                  </View>
+                  <View style={styles.distItem}>
+                    <Text style={styles.distLabel}>Entrenadores</Text>
+                    <Text style={styles.distValue}>
+                      {estadisticas?.totalEntrenadores || 0}
+                    </Text>
+                  </View>
+                  <View style={styles.distItem}>
+                    <Text style={styles.distLabel}>Apoderados</Text>
+                    <Text style={styles.distValue}>
+                      {estadisticas?.totalApoderados || 0}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>
-        )}
+        </Animated.View>
 
-        {/* Funcionalidades de Administración */}
-        <View style={styles.featuresContainer}>
-          <Text style={styles.sectionTitle}>Herramientas de Administración</Text>
-          <View style={styles.featuresGrid}>
-            {adminFeatures.map((feature, index) => (
+        <Animated.View
+          style={[
+            styles.modulesSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="cog" size={22} color="#1E40AF" />
+              <Text style={styles.sectionTitle}>
+                Herramientas Administrativas
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.modulesGrid}>
+            {adminFeatures.map((module, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.featureCard, { borderLeftColor: feature.color }]}
-                onPress={() => router.push(feature.route)}
+                style={styles.moduleCard}
+                onPress={() => router.push(module.route)}
+                activeOpacity={0.9}
               >
-                <View style={styles.featureIconContainer}>
-                  <Ionicons name={feature.icon as any} size={28} color={feature.color} />
+                <View style={styles.moduleHeader}>
+                  <View
+                    style={[
+                      styles.moduleIcon,
+                      { backgroundColor: module.color + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={module.icon as any}
+                      size={24}
+                      color={module.color}
+                    />
+                  </View>
                 </View>
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                <Text style={styles.moduleTitle}>{module.title}</Text>
+                <Text style={styles.moduleDescription}>
+                  {module.description}
+                </Text>
+                <View style={styles.moduleFooter}>
+                  <View
+                    style={[
+                      styles.moduleArrow,
+                      { backgroundColor: module.color + "20" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="arrow-forward"
+                      size={14}
+                      color={module.color}
+                    />
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
-
-      {/* Botón de Cerrar Sesión */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out" size={20} color="#fff" />
-        <Text style={styles.logoutText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -242,175 +420,314 @@ export default function AdminScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#FFFFFF",
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  bubble: {
+    position: "absolute",
+    borderRadius: 500,
+  },
+  bubble1: {
+    width: 220,
+    height: 220,
+    top: -80,
+    right: -60,
+    backgroundColor: "#EFF6FF",
+  },
+  bubble2: {
+    width: 180,
+    height: 180,
+    bottom: 120,
+    left: -70,
+    backgroundColor: "#F0FDF9",
+  },
+  bubble3: {
+    width: 120,
+    height: 120,
+    top: "35%",
+    right: 40,
+    backgroundColor: "#FEF7ED",
+  },
+  bubble4: {
+    width: 90,
+    height: 90,
+    bottom: 200,
+    right: 100,
+    backgroundColor: "#F8FAFC",
   },
   centered: {
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollContent: {
+  loadingContainer: {
+    alignItems: "center",
+  },
+  loadingAnimation: {
+    marginBottom: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
-    backgroundColor: "#3f3db8ff",
-    padding: 25,
-    paddingTop: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    paddingHorizontal: 28,
+    paddingTop: 30,
+    paddingBottom: 30,
   },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   userInfo: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     flex: 1,
   },
-  welcome: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "white",
+  avatarContainer: {
+    position: "relative",
+    marginRight: 16,
+  },
+  avatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#1E40AF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+    borderWidth: 2,
+    borderColor: "#3B82F6",
+  },
+  userText: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "600",
     marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   userName: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.9)",
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#1E293B",
+    lineHeight: 28,
     marginBottom: 8,
   },
   roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E40AF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
-    alignSelf: 'flex-start',
-    gap: 4,
+    alignSelf: "flex-start",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#3B82F6",
   },
   roleText: {
     fontSize: 11,
-    color: "white",
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
-  statsContainer: {
-    padding: 20,
+  statsSection: {
+    marginBottom: 28,
+  },
+  modulesSection: {
+    marginBottom: 10,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingHorizontal: 28,
+  },
+  sectionTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15,
+    fontWeight: "700",
+    color: "#1E293B",
+    letterSpacing: -0.3,
+  },
+  refreshButton: {
+    padding: 8,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  refreshingIcon: {
+    transform: [{ rotate: "180deg" }],
   },
   statsGrid: {
+    paddingHorizontal: 28,
+    gap: 16,
+  },
+  statRow: {
     flexDirection: "row",
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 16,
   },
   statCard: {
-    width: '48%',
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1.5,
+    borderColor: "#F1F5F9",
   },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginVertical: 5,
+  statCardPrimary: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#1E40AF",
+  },
+  statCardSuccess: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#059669",
+  },
+  statCardWarning: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#D97706",
+  },
+  statCardInfo: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#7C3AED",
+  },
+  statHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
   },
   statLabel: {
-    fontSize: 12,
-    color: "#666",
-    textAlign: "center",
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
-  featuresContainer: {
-    padding: 20,
-    paddingTop: 0,
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 8,
   },
-  featuresGrid: {
+  statSubtext: {
     flexDirection: "row",
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: "center",
+    gap: 6,
   },
-  featureCard: {
-    width: '48%',
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    borderLeftWidth: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+  statTrend: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  statSubLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  distribution: {
+    gap: 6,
+  },
+  distItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  distLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  distValue: {
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "700",
+  },
+  modulesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    gap: 16,
+  },
+  moduleCard: {
+    width: (width - 84) / 2,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1.5,
+    borderColor: "#F1F5F9",
   },
-  featureIconContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: "rgba(63, 61, 184, 0.1)",
+  moduleHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  moduleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
   },
-  featureContent: {
-    flex: 1,
+  moduleTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 6,
   },
-  featureTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
+  moduleDescription: {
+    fontSize: 12,
+    color: "#64748B",
+    lineHeight: 16,
+    marginBottom: 12,
   },
-  featureDescription: {
-    fontSize: 11,
-    color: "#666",
-    lineHeight: 14,
-  },
-  logoutButton: {
-    backgroundColor: "#dc3545",
-    margin: 10,
-    padding: 16,
-    borderRadius: 12,
+  moduleFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: "#dc3545",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  logoutText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#3f3db8ff",
+  moduleArrow: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

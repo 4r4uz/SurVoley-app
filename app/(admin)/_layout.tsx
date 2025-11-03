@@ -23,8 +23,10 @@ export default function AdminLayout() {
   if (user?.rol !== "admin") return <Redirect href="/(auth)/login" />;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-    </Stack>
+    <SafeLayout>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+      </Stack>
+    </SafeLayout>
   );
 }

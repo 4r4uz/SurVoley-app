@@ -64,7 +64,7 @@ export default function JugadorHome() {
       title: "Ajustes",
       icon: "settings",
       description: "Configuración personal",
-      route: "/(jugador)/settings",
+      route: "/settings",
       color: "#10B981",
       lightColor: "#10B981",
     },

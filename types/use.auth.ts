@@ -3,10 +3,9 @@ import * as SecureStore from 'expo-secure-store';
 import { supabase } from "../supabase/supabaseClient";
 import { User, UseAuthReturn } from "../types/auth.type";
 
-// Constantes para las keys de almacenamiento
 const USER_STORAGE_KEY = "currentUser";
 const SESSION_CHECK_KEY = "sessionChecked";
-const REMEMBER_ME_KEY = "rememberMe"; // Nueva key para recordar sesión
+const REMEMBER_ME_KEY = "rememberMe"; 
 
 let globalSessionChecked = false;
 let cachedUser: User | null = null;
@@ -41,7 +40,6 @@ export const useAuth = (): UseAuthReturn => {
     };
   }, []);
 
-  // Función para verificar si debe recordar la sesión
   const shouldRememberMe = async (): Promise<boolean> => {
     try {
       const rememberMe = await SecureStore.getItemAsync(REMEMBER_ME_KEY);
@@ -52,17 +50,13 @@ export const useAuth = (): UseAuthReturn => {
     }
   };
 
-  // Función segura para almacenar el usuario
   const storeUserSecurely = async (user: User, rememberMe: boolean = false): Promise<void> => {
     try {
       if (rememberMe) {
-        // Si eligió recordar, guardamos el usuario
         await SecureStore.setItemAsync(USER_STORAGE_KEY, JSON.stringify(user));
         await SecureStore.setItemAsync(REMEMBER_ME_KEY, "true");
       } else {
-        // Si no eligió recordar, solo guardamos la preferencia
         await SecureStore.setItemAsync(REMEMBER_ME_KEY, "false");
-        // Limpiamos cualquier usuario previo
         await SecureStore.deleteItemAsync(USER_STORAGE_KEY);
       }
       await SecureStore.setItemAsync(SESSION_CHECK_KEY, "true");
@@ -72,7 +66,6 @@ export const useAuth = (): UseAuthReturn => {
     }
   };
 
-  // Función segura para obtener el usuario
   const getStoredUser = async (): Promise<User | null> => {
     try {
       const rememberMe = await shouldRememberMe();
@@ -105,7 +98,6 @@ export const useAuth = (): UseAuthReturn => {
       if (user) {
         console.log("Usuario encontrado en SecureStore (recordarme activado):", user);
         
-        // Verificar que el usuario tenga la estructura correcta
         if (user.id && user.email && user.rol) {
           cachedUser = user;
           globalSessionChecked = true;
@@ -118,7 +110,6 @@ export const useAuth = (): UseAuthReturn => {
             });
           }
         } else {
-          // Datos corruptos, limpiar almacenamiento
           await clearStorage();
           throw new Error("Datos de usuario corruptos");
         }
