@@ -363,7 +363,6 @@ export default function GestionUsuariosScreen() {
   };
 
   const crearNuevoUsuario = async () => {
-    // Crear usuario en Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formulario.correo.trim(),
       password: formulario.nuevaPassword!,
