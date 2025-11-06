@@ -21,6 +21,8 @@ import { useAuth } from "../../types/use.auth";
 import { supabase } from "../../supabase/supabaseClient";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import UserCard from "../../components/UserCard";
+import { colors } from "../../constants/theme";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -908,97 +910,13 @@ const renderCampoFormulario = (
           ) : (
             <View style={styles.usuariosList}>
               {usuariosFiltrados.map((usuario) => (
-                <View key={usuario.id_usuario} style={styles.usuarioCard}>
-                  <View style={styles.usuarioHeader}>
-                    <View style={styles.usuarioInfo}>
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>
-                          {usuario.nombre.charAt(0)}{usuario.apellido.charAt(0)}
-                        </Text>
-                      </View>
-                      <View style={styles.usuarioDetails}>
-                        <Text style={styles.usuarioNombre}>
-                          {usuario.nombre} {usuario.apellido}
-                        </Text>
-                        <Text style={styles.usuarioEmail}>{usuario.correo}</Text>
-                        <View style={styles.usuarioMeta}>
-                          <View style={[styles.rolBadge, { backgroundColor: getRolColor(usuario.rol) }]}>
-                            <Ionicons name={getRolIcon(usuario.rol)} size={12} color="#FFFFFF" />
-                            <Text style={styles.rolText}>{usuario.rol}</Text>
-                          </View>
-                          <View style={[styles.estadoBadge, { 
-                            backgroundColor: usuario.estado_cuenta ? '#10B98120' : '#EF444420',
-                            borderColor: usuario.estado_cuenta ? '#10B981' : '#EF4444'
-                          }]}>
-                            <Ionicons 
-                              name={usuario.estado_cuenta ? 'checkmark-circle' : 'close-circle'} 
-                              size={12} 
-                              color={usuario.estado_cuenta ? '#10B981' : '#EF4444'} 
-                            />
-                            <Text style={[styles.estadoText, { 
-                              color: usuario.estado_cuenta ? '#10B981' : '#EF4444'
-                            }]}>
-                              {usuario.estado_cuenta ? 'Activo' : 'Inactivo'}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.usuarioActions}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => abrirModalEdicion(usuario)}
-                      >
-                        <Ionicons name="create" size={18} color="#2563EB" />
-                      </TouchableOpacity>
-
-                      {!usuario.estado_cuenta && (
-                        <TouchableOpacity
-                          style={styles.actionButtonDanger}
-                          onPress={() => eliminarUsuario(usuario)}
-                        >
-                          <Ionicons name="trash-outline" size={18} color="#6B7280" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-
-                  {usuario.jugador && (
-                    <View style={styles.infoAdicional}>
-                      <View style={styles.infoItem}>
-                        <Ionicons name="id-card" size={14} color="#6B7280" />
-                        <Text style={styles.infoText}>RUT: {usuario.jugador.rut || 'No especificado'}</Text>
-                      </View>
-                      <View style={styles.infoItem}>
-                        <Ionicons name="calendar" size={14} color="#6B7280" />
-                        <Text style={styles.infoText}>Categoría: {usuario.jugador.categoria || 'No especificada'}</Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {usuario.apoderado && (
-                    <View style={styles.infoAdicional}>
-                      <View style={styles.infoItem}>
-                        <Ionicons name="heart" size={14} color="#6B7280" />
-                        <Text style={styles.infoText}>Parentesco: {usuario.apoderado.parentesco || 'No especificado'}</Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {!usuario.estado_cuenta && (
-                    <View style={styles.seccionEliminacion}>
-                      <View style={styles.separador} />
-                      <TouchableOpacity
-                        style={styles.botonEliminarCompleto}
-                        onPress={() => eliminarUsuario(usuario)}
-                      >
-                        <Ionicons name="trash-outline" size={16} color="#DC2626" />
-                        <Text style={styles.botonEliminarTexto}>Eliminar usuario permanentemente</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
+                <UserCard
+                  key={usuario.id_usuario}
+                  usuario={usuario}
+                  onEdit={() => abrirModalEdicion(usuario)}
+                  onDelete={() => eliminarUsuario(usuario)}
+                  showDelete={true}
+                />
               ))}
             </View>
           )}

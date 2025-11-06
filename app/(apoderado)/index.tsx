@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from "rea
 import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
+import RoleBadge from "../../components/RoleBadge";
+import { colors, spacing, borderRadius, shadows, typography } from "../../constants/theme";
 
 export default function ApoderadoHome() {
   const { user, signOut } = useAuth();
@@ -60,10 +62,7 @@ export default function ApoderadoHome() {
         </View>
         <Text style={styles.welcome}>¡Hola, {user?.nombre || "Apoderado"}!</Text>
         <Text style={styles.userInfo}>Bienvenido a SURVOLEY APP</Text>
-        <View style={styles.roleBadge}>
-          <Ionicons name="people" size={14} color="#fff" />
-          <Text style={styles.roleText}>Apoderado</Text>
-        </View>
+        <RoleBadge rol="apoderado" size="md" />
       </View>
 
       <ScrollView style={styles.scrollContent}>
@@ -76,7 +75,7 @@ export default function ApoderadoHome() {
               onPress={() => router.push(feature.route)}
             >
               <View style={styles.featureIconContainer}>
-                <Ionicons name={feature.icon as any} size={28} color="#3f3db8ff" />
+                <Ionicons name={feature.icon as any} size={28} color={colors.apoderado} />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
@@ -99,16 +98,16 @@ export default function ApoderadoHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: colors.surface,
   },
   header: {
-    backgroundColor: "#3f3db8ff",
-    padding: 20,
-    paddingTop: 15,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: colors.apoderado,
+    padding: spacing.xl,
+    paddingTop: spacing.lg,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
     alignItems: 'center',
-    shadowColor: "#3f3db8ff",
+    shadowColor: colors.apoderado,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -144,20 +143,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
     marginBottom: 8,
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 5,
-  },
-  roleText: {
-    fontSize: 12,
-    color: "white",
-    fontWeight: '600',
   },
   scrollContent: {
     flex: 1,

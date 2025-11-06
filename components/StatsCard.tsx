@@ -1,0 +1,65 @@
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+interface StatsCardProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: string | number;
+  label: string;
+  color: string;
+}
+
+//Componente reutilizable para mostrar estadísticas con icono
+
+export const StatsCard = React.memo(({ icon, value, label, color }: StatsCardProps) => {
+  return (
+    <View style={styles.statsCard}>
+      <View style={[styles.statsIcon, { backgroundColor: color + "15" }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <Text style={styles.statsValue}>{value}</Text>
+      <Text style={styles.statsLabel}>{label}</Text>
+    </View>
+  );
+});
+
+StatsCard.displayName = "StatsCard";
+
+const styles = StyleSheet.create({
+  statsCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  statsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statsValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  statsLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "center",
+  },
+});
+

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { colors, spacing, borderRadius, shadows, typography } from "../../constants/theme";
 
-// Datos simulados (más adelante se pueden obtener desde Firebase)
 const alumnosIniciales = [
   { id: "1", nombre: "Juan Pérez", asistencias: 8, total: 10 },
   { id: "2", nombre: "María Gómez", asistencias: 9, total: 10 },
@@ -52,26 +52,36 @@ export default function Asistencia() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f9f9f9" },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 15, textAlign: "center" },
-  card: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 5,
-    elevation: 3,
+  container: { 
+    flex: 1, 
+    padding: spacing.xl, 
+    backgroundColor: colors.surface,
   },
-  name: { fontWeight: "bold", fontSize: 16 },
+  title: { 
+    ...typography.h2,
+    marginBottom: spacing.lg, 
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    ...shadows.sm,
+  },
+  name: { 
+    ...typography.h3,
+    fontSize: 16,
+  },
   btn: {
-    backgroundColor: "#28a745",
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 8,
+    backgroundColor: colors.success,
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.sm,
     alignItems: "center",
   },
-  btnText: { color: "#fff", fontWeight: "bold" },
+  btnText: { 
+    color: colors.text.inverse, 
+    fontWeight: "bold",
+  },
 });

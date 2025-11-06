@@ -12,6 +12,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../types/use.auth";
 import { supabase } from "../../supabase/supabaseClient";
+import { StatsCard } from "../../components/StatsCard";
+import { formatDate } from "../../utils/dateHelpers";
+import { colors } from "../../constants/theme";
 
 interface AttendanceItem {
   id: string;
@@ -33,17 +36,6 @@ interface NextSession {
   esEvento?: boolean;
 }
 
-const StatsCard = React.memo(({ icon, value, label, color }: any) => {
-  return (
-    <View style={styles.statsCard}>
-      <View style={[styles.statsIcon, { backgroundColor: color + "15" }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={styles.statsValue}>{value}</Text>
-      <Text style={styles.statsLabel}>{label}</Text>
-    </View>
-  );
-});
 
 const NextSessionCard = React.memo(
   ({ nextSession }: { nextSession: NextSession | null }) => {
@@ -64,23 +56,6 @@ const NextSessionCard = React.memo(
         </View>
       );
     }
-
-    const formatDate = (dateString: string) => {
-      try {
-        const date = new Date(dateString);
-        return {
-          day: date.getDate(),
-          month: date.toLocaleDateString("es-ES", { month: "short" }),
-          time: date.toLocaleTimeString("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
-        };
-      } catch {
-        return { day: "?", month: "???", time: "--:--", weekday: "---" };
-      }
-    };
 
     const dateInfo = formatDate(nextSession.fecha_hora);
 
@@ -111,7 +86,7 @@ const NextSessionCard = React.memo(
             </View>
           </View>
 
-          <View style={[styles.sessionType, { backgroundColor: "#2563EB" }]}>
+          <View style={[styles.sessionType, { backgroundColor: colors.primary }]}>
             <Ionicons
               name={nextSession.esEvento ? "trophy" : "basketball"}
               size={18}
@@ -130,25 +105,25 @@ const AttendanceCard = React.memo(({ item }: { item: AttendanceItem }) => {
       case "Presente":
         return {
           icon: "checkmark-circle",
-          color: "#10B981",
+          color: colors.success,
           bg: "#F0FDF4",
-          borderColor: "#10B981",
+          borderColor: colors.success,
           badgeText: "PRESENTE",
         };
       case "Ausente":
         return {
           icon: "close-circle",
-          color: "#EF4444",
+          color: colors.error,
           bg: "#FEF2F2",
-          borderColor: "#EF4444",
+          borderColor: colors.error,
           badgeText: "AUSENTE",
         };
       case "Justificado":
         return {
           icon: "time",
-          color: "#F59E0B",
+          color: colors.warning,
           bg: "#FFFBEB",
-          borderColor: "#F59E0B",
+          borderColor: colors.warning,
           badgeText: "JUSTIFICADO",
         };
       default:
@@ -164,34 +139,12 @@ const AttendanceCard = React.memo(({ item }: { item: AttendanceItem }) => {
 
   const statusConfig = getStatusConfig(item.estado_asistencia);
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return {
-        day: date.getDate(),
-        month: date.toLocaleDateString("es-ES", { month: "short" }),
-        weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
-        time: date.toLocaleTimeString("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-    } catch {
-      return {
-        day: "?",
-        month: "???",
-        weekday: "---",
-        time: "--:--",
-      };
-    }
-  };
-
   const dateInfo = item.fecha_asistencia
     ? formatDate(item.fecha_asistencia)
     : item.fecha_hora
     ? formatDate(item.fecha_hora)
     : {
-        day: "?",
+        day: 0,
         month: "???",
         weekday: "---",
         time: "--:--",
@@ -419,7 +372,6 @@ export default function MiAsistenciaScreen() {
     item => !["Entrenamiento", "Torneo", "Partido"].includes(item.tipo_evento || "")
   );
 
-  // Estadísticas generales
   const totalSessions = relevantAttendanceData.length;
   const presentSessions = relevantAttendanceData.filter(
     (item) => item.estado_asistencia === "Presente"
@@ -431,7 +383,6 @@ export default function MiAsistenciaScreen() {
     (item) => item.estado_asistencia === "Justificado"
   ).length;
 
-  // Estadísticas por tipo
   const entrenamientosPresentes = entrenamientos.filter(
     item => item.estado_asistencia === "Presente"
   ).length;
@@ -461,7 +412,7 @@ export default function MiAsistenciaScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
+        <StatusBar backgroundColor={colors.primaryDark} barStyle="light-content" />
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.headerTextContainer}>
@@ -471,9 +422,9 @@ export default function MiAsistenciaScreen() {
           </View>
         </View>
         <View style={styles.loadingContent}>
-          <Ionicons name="basketball" size={60} color="#2563EB" />
+          <Ionicons name="basketball" size={60} color={colors.primary} />
           <Text style={styles.loadingText}>Cargando asistencia...</Text>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -481,7 +432,7 @@ export default function MiAsistenciaScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.primaryDark} barStyle="light-content" />
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
@@ -500,41 +451,39 @@ export default function MiAsistenciaScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#2563EB"]}
-            tintColor="#2563EB"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
-        {/* Resumen Rápido */}
         <View style={styles.section}>
           <View style={styles.statsGrid}>
             <StatsCard
               icon="checkmark-circle"
-              value={presentSessions}
+              value={presentSessions.toString()}
               label="Presente"
-              color="#10B981"
+              color={colors.success}
             />
             <StatsCard
               icon="close-circle"
-              value={absentSessions}
+              value={absentSessions.toString()}
               label="Ausente"
-              color="#EF4444"
+              color={colors.error}
             />
             <StatsCard
               icon="time"
-              value={justifiedSessions}
+              value={justifiedSessions.toString()}
               label="Justificado"
-              color="#F59E0B"
+              color={colors.warning}
             />
             <StatsCard
               icon="bar-chart"
-              value={totalSessions}
+              value={totalSessions.toString()}
               label="Total"
-              color="#2563EB"
+              color={colors.primary}
             />
           </View>
 
-          {/* Porcentaje de Asistencia */}
           <View style={styles.attendanceRate}>
             <View style={styles.rateHeader}>
               <Text style={styles.rateTitle}>Tu Asistencia General</Text>
@@ -548,23 +497,22 @@ export default function MiAsistenciaScreen() {
                     width: `${attendanceRate}%`,
                     backgroundColor:
                       attendanceRate >= 80
-                        ? "#10B981"
+                        ? colors.success
                         : attendanceRate >= 60
-                        ? "#F59E0B"
-                        : "#EF4444",
+                        ? colors.warning
+                        : colors.error,
                   },
                 ]}
               />
             </View>
           </View>
 
-          {/* Estadísticas por Tipo */}
           <View style={styles.typeStats}>
             <Text style={styles.typeStatsTitle}>Asistencia por Tipo</Text>
             <View style={styles.typeStatsGrid}>
               <View style={styles.typeStat}>
                 <View style={styles.typeStatHeader}>
-                  <Ionicons name="basketball" size={16} color="#2563EB" />
+                  <Ionicons name="basketball" size={16} color={colors.primary} />
                   <Text style={styles.typeStatLabel}>Entrenamientos</Text>
                 </View>
                 <Text style={styles.typeStatValue}>{entrenamientosRate}%</Text>
@@ -573,7 +521,7 @@ export default function MiAsistenciaScreen() {
               
               <View style={styles.typeStat}>
                 <View style={styles.typeStatHeader}>
-                  <Ionicons name="trophy" size={16} color="#F59E0B" />
+                  <Ionicons name="trophy" size={16} color={colors.warning} />
                   <Text style={styles.typeStatLabel}>Torneos</Text>
                 </View>
                 <Text style={styles.typeStatValue}>{torneosRate}%</Text>
@@ -582,7 +530,7 @@ export default function MiAsistenciaScreen() {
               
               <View style={styles.typeStat}>
                 <View style={styles.typeStatHeader}>
-                  <Ionicons name="flag" size={16} color="#EF4444" />
+                  <Ionicons name="flag" size={16} color={colors.error} />
                   <Text style={styles.typeStatLabel}>Partidos</Text>
                 </View>
                 <Text style={styles.typeStatValue}>{partidosRate}%</Text>
@@ -592,16 +540,14 @@ export default function MiAsistenciaScreen() {
           </View>
         </View>
 
-        {/* Próxima Sesión */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="calendar" size={20} color="#2563EB" />
+            <Ionicons name="calendar" size={20} color={colors.primary} />
             <Text style={styles.sectionTitle}>Próxima Sesión</Text>
           </View>
           <NextSessionCard nextSession={nextSession} />
         </View>
 
-        {/* Historial de Asistencia */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
@@ -653,10 +599,10 @@ export default function MiAsistenciaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: "#1E293B",
+    backgroundColor: colors.primaryDark,
     paddingHorizontal: 20,
     paddingTop: 25,
     paddingBottom: 20,

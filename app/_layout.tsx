@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuth } from "../types/use.auth";
-import { View, Text, ActivityIndicator } from "react-native";
+import LoadingScreen from "../components/LoadingScreen";
 
 export default function RootLayout() {
   const { loading } = useAuth();
@@ -9,10 +9,7 @@ export default function RootLayout() {
   if (loading) {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color="#3f3db8ff" />
-          <Text style={{ marginTop: 10, color: "#374151" }}>Cargando...</Text>
-        </View>
+        <LoadingScreen message="Cargando..." />
       </SafeAreaProvider>
     );
   }

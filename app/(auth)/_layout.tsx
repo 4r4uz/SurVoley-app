@@ -1,7 +1,8 @@
 import { Stack, Redirect } from "expo-router";
 import { useAuth } from "../../types/use.auth";
-import { View, Text, ActivityIndicator } from "react-native";
+import { ROLE_ROUTE_MAP } from "../../types/auth.type";
 import SafeLayout from "../../components/safearea";
+import LoadingScreen from "../../components/LoadingScreen";
 
 export default function AuthLayout() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -9,26 +10,15 @@ export default function AuthLayout() {
   if (loading) {
     return (
       <SafeLayout>
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <ActivityIndicator size="large" color="#3f3db8ff" />
-          <Text style={{ marginTop: 10 }}>Cargando...</Text>
-        </View>
+        <LoadingScreen message="Cargando..." />
       </SafeLayout>
     );
   }
 
-  if (isAuthenticated) {
-    const routeMap = {
-      admin: "/(admin)",
-      jugador: "/(jugador)",
-      apoderado: "/(apoderado)",
-      entrenador: "/(entrenador)",
-    };
+  if (isAuthenticated && user?.rol) {
     return (
       <Redirect
-        href={routeMap[user?.rol as keyof typeof routeMap] || "/(jugador)"}
+        href={ROLE_ROUTE_MAP[user.rol] || ROLE_ROUTE_MAP.jugador}
       />
     );
   }

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../types/use.auth";
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { colors } from "../../constants/theme";
 
 interface CertificateType {
   id: string;
@@ -74,7 +75,7 @@ export default function CertificadosScreen() {
       title: "Certificado de Afiliación",
       icon: "person",
       description: "Certificado oficial de membresía en el club",
-      color: "#2563EB",
+      color: colors.primary,
     },
     {
       id: "asistencia",
@@ -463,7 +464,7 @@ export default function CertificadosScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.primaryDark} barStyle="light-content" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   header: {
-    backgroundColor: "#1E293B",
+    backgroundColor: colors.primaryDark,
     paddingHorizontal: 20,
     paddingTop: 25,
     paddingBottom: 20,

@@ -13,6 +13,9 @@ import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../supabase/supabaseClient";
+import BackgroundDecorativo from "../../components/BackgroundDecorativo";
+import UserHeader from "../../components/UserHeader";
+import { colors } from "../../constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -200,12 +203,7 @@ export default function JugadorHome() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.background}>
-        <View style={[styles.bubble, styles.bubble1]} />
-        <View style={[styles.bubble, styles.bubble2]} />
-        <View style={[styles.bubble, styles.bubble3]} />
-        <View style={[styles.bubble, styles.bubble4]} />
-      </View>
+      <BackgroundDecorativo />
 
       <ScrollView
         style={styles.scrollView}
@@ -215,46 +213,18 @@ export default function JugadorHome() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#7C3AED"]}
-            tintColor="#7C3AED"
+            colors={[colors.apoderado]}
+            tintColor={colors.apoderado}
             title="Actualizando..."
             titleColor="#6B7280"
           />
         }
       >
-        <Animated.View
-          style={[
-            styles.header,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideUpAnim }],
-            },
-          ]}
-        >
-          <View style={styles.headerContent}>
-            <View style={styles.userInfo}>
-              <View style={styles.avatarContainer}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {user?.nombre?.charAt(0)}
-                    {user?.apellido?.charAt(0)}
-                  </Text>
-                </View>
-                <View />
-              </View>
-              <View style={styles.userText}>
-                <Text style={styles.greeting}>¡Hola de nuevo!</Text>
-                <Text style={styles.userName}>
-                  {user?.nombre} {user?.apellido}
-                </Text>
-                <View style={styles.roleBadge}>
-                  <Ionicons name="person" size={12} color="#FFFFFF" />
-                  <Text style={styles.roleText}>Jugador</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
+        <UserHeader
+          user={user}
+          greeting="¡Hola de nuevo!"
+          avatarColor={colors.jugador}
+        />
 
         <Animated.View
           style={[
@@ -267,14 +237,14 @@ export default function JugadorHome() {
         >
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="time" size={20} color="#7C3AED" />
+              <Ionicons name="time" size={20} color={colors.apoderado} />
               <Text style={styles.sectionTitle}>Próximos Eventos</Text>
             </View>
             <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
               <Ionicons 
                 name="refresh" 
                 size={18} 
-                color="#7C3AED" 
+                color={colors.apoderado} 
                 style={refreshing ? styles.refreshingIcon : null}
               />
             </TouchableOpacity>
@@ -282,8 +252,8 @@ export default function JugadorHome() {
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <View style={styles.loadingAnimation}>
-                <Ionicons name="refresh" size={32} color="#7C3AED" />
+                <View style={styles.loadingAnimation}>
+                <Ionicons name="refresh" size={32} color={colors.apoderado} />
               </View>
               <Text style={styles.loadingText}>Cargando eventos...</Text>
             </View>
@@ -400,7 +370,7 @@ export default function JugadorHome() {
         >
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="flash" size={20} color="#7C3AED" />
+              <Ionicons name="flash" size={20} color={colors.apoderado} />
               <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
             </View>
           </View>
@@ -455,115 +425,13 @@ export default function JugadorHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  background: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  bubble: {
-    position: "absolute",
-    borderRadius: 500,
-  },
-  bubble1: {
-    width: 220,
-    height: 220,
-    top: -80,
-    right: -60,
-    backgroundColor: "#F0F9FF",
-  },
-  bubble2: {
-    width: 180,
-    height: 180,
-    bottom: 120,
-    left: -70,
-    backgroundColor: "#FDF2F8",
-  },
-  bubble3: {
-    width: 120,
-    height: 120,
-    top: "35%",
-    right: 40,
-    backgroundColor: "#F0FDF4",
-  },
-  bubble4: {
-    width: 90,
-    height: 90,
-    bottom: 200,
-    right: 100,
-    backgroundColor: "#FAF5FF",
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 20,
-  },
-  header: {
-    paddingHorizontal: 28,
-    paddingTop: 40,
-    paddingBottom: 25,
-  },
-  headerContent: {
-    alignItems: "flex-start",
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  avatarContainer: {
-    position: "relative",
-    marginRight: 16,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#7C3AED",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#7C3AED",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-  userText: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: 15,
-    color: "#6B7280",
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  userName: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#1F2937",
-    lineHeight: 30,
-    marginBottom: 8,
-  },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#7C3AED",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    gap: 4,
-  },
-  roleText: {
-    fontSize: 11,
-    color: "#FFFFFF",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   eventsSection: {
     marginBottom: 28,
@@ -797,7 +665,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: "#7C3AED",
+    backgroundColor: colors.apoderado,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

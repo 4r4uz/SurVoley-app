@@ -12,6 +12,8 @@ import { useAuth } from "../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import SafeLayout from "../components/safearea";
+import RoleBadge from "../components/RoleBadge";
+import { colors, spacing, borderRadius, shadows, typography } from "../constants/theme";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -107,7 +109,6 @@ export default function SettingsScreen() {
   return (
     <SafeLayout>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header de Usuario */}
         <View style={styles.userHeader}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -122,23 +123,17 @@ export default function SettingsScreen() {
                 : user?.email}
             </Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
-            <View style={styles.roleBadge}>
-              <Ionicons name="person" size={12} color="#fff" />
-              <Text style={styles.roleText}>
-                {user?.rol ? getRoleName(user.rol) : "Usuario"}
-              </Text>
-            </View>
+            {user?.rol && <RoleBadge rol={user.rol} size="sm" />}
           </View>
         </View>
 
-        {/* Secciones de Configuración */}
         {allSettingsSections.map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons
                 name={section.icon as any}
                 size={20}
-                color="#3f3db8ff"
+                color={colors.primary}
               />
               <Text style={styles.sectionTitle}>{section.title}</Text>
             </View>
@@ -155,7 +150,7 @@ export default function SettingsScreen() {
                       <Ionicons
                         name={item.icon as any}
                         size={22}
-                        color="#3f3db8ff"
+                        color={colors.primary}
                       />
                     </View>
                     <View style={styles.settingText}>
@@ -175,13 +170,11 @@ export default function SettingsScreen() {
           </View>
         ))}
 
-        {/* Botón de Cerrar Sesión */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
           <Ionicons name="log-out" size={20} color="#dc3545" />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 
-        {/* Información de la App */}
         <View style={styles.appInfo}>
           <Text style={styles.appVersion}>SURVOLEY APP v1.0.0</Text>
           <Text style={styles.appCopyright}>
@@ -196,58 +189,41 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: colors.surface,
   },
   userHeader: {
-    backgroundColor: "#fff",
-    padding: 25,
+    backgroundColor: colors.background,
+    padding: spacing.xxl,
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: colors.border,
   },
   avatar: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: "#3f3db8ff",
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
+    marginRight: spacing.lg,
   },
   avatarText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#fff",
+    color: colors.text.inverse,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    ...typography.h3,
     marginBottom: 2,
   },
   userEmail: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(63, 61, 184, 0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    gap: 4,
-  },
-  roleText: {
-    fontSize: 11,
-    color: "#3f3db8ff",
-    fontWeight: "600",
+    ...typography.body,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
   },
   section: {
     marginTop: 20,
@@ -260,20 +236,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
+    ...typography.h3,
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
   },
   sectionContent: {
-    backgroundColor: "#fff",
-    marginHorizontal: 15,
-    borderRadius: 12,
+    backgroundColor: colors.background,
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    ...shadows.sm,
   },
   settingItem: {
     flexDirection: "row",
@@ -291,11 +262,11 @@ const styles = StyleSheet.create({
   settingIcon: {
     width: 40,
     height: 40,
-    borderRadius: 8,
-    backgroundColor: "rgba(63, 61, 184, 0.1)",
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary + "15",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   settingText: {
     flex: 1,
@@ -330,9 +301,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   logoutText: {
+    ...typography.label,
     fontSize: 16,
-    fontWeight: "600",
-    color: "#dc3545",
+    color: colors.error,
   },
   appInfo: {
     alignItems: "center",

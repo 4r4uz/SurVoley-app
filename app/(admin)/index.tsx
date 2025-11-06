@@ -15,6 +15,9 @@ import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../supabase/supabaseClient";
+import BackgroundDecorativo from "../../components/BackgroundDecorativo";
+import UserHeader from "../../components/UserHeader";
+import { colors } from "../../constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -195,12 +198,7 @@ export default function AdminScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.background}>
-        <View style={[styles.bubble, styles.bubble1]} />
-        <View style={[styles.bubble, styles.bubble2]} />
-        <View style={[styles.bubble, styles.bubble3]} />
-        <View style={[styles.bubble, styles.bubble4]} />
-      </View>
+      <BackgroundDecorativo />
 
       <ScrollView
         style={styles.scrollView}
@@ -210,42 +208,19 @@ export default function AdminScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#1E40AF"]}
-            tintColor="#1E40AF"
+            colors={[colors.primaryDark]}
+            tintColor={colors.primaryDark}
             title="Actualizando..."
             titleColor="#6B7280"
           />
         }
       >
-        <Animated.View
-          style={[
-            styles.header,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideUpAnim }],
-            },
-          ]}
-        >
-          <View style={styles.headerContent}>
-            <View style={styles.userInfo}>
-              <View style={styles.avatarContainer}>
-                <View style={styles.avatar}>
-                  <Ionicons name="shield" size={24} color="#FFFFFF" />
-                </View>
-              </View>
-              <View style={styles.userText}>
-                <Text style={styles.greeting}>Panel de Control</Text>
-                <Text style={styles.userName}>
-                  {user?.nombre} {user?.apellido}
-                </Text>
-                <View style={styles.roleBadge}>
-                  <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
-                  <Text style={styles.roleText}>Administrador del Sistema</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
+        <UserHeader
+          user={user}
+          greeting="Panel de Control"
+          avatarColor={colors.primaryDark}
+          roleText="Administrador del Sistema"
+        />
 
         <Animated.View
           style={[
@@ -258,14 +233,14 @@ export default function AdminScreen() {
         >
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="analytics" size={22} color="#1E40AF" />
+              <Ionicons name="analytics" size={22} color={colors.primaryDark} />
               <Text style={styles.sectionTitle}>Métricas del Sistema</Text>
             </View>
             <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
               <Ionicons
                 name="refresh"
                 size={18}
-                color="#1E40AF"
+                color={colors.primaryDark}
                 style={refreshing ? styles.refreshingIcon : null}
               />
             </TouchableOpacity>
@@ -361,7 +336,7 @@ export default function AdminScreen() {
         >
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="cog" size={22} color="#1E40AF" />
+              <Ionicons name="cog" size={22} color={colors.primaryDark} />
               <Text style={styles.sectionTitle}>
                 Herramientas Administrativas
               </Text>
@@ -420,42 +395,7 @@ export default function AdminScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  background: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  bubble: {
-    position: "absolute",
-    borderRadius: 500,
-  },
-  bubble1: {
-    width: 220,
-    height: 220,
-    top: -80,
-    right: -60,
-    backgroundColor: "#EFF6FF",
-  },
-  bubble2: {
-    width: 180,
-    height: 180,
-    bottom: 120,
-    left: -70,
-    backgroundColor: "#F0FDF9",
-  },
-  bubble3: {
-    width: 120,
-    height: 120,
-    top: "35%",
-    right: 40,
-    backgroundColor: "#FEF7ED",
-  },
-  bubble4: {
-    width: 90,
-    height: 90,
-    bottom: 200,
-    right: 100,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
   },
   centered: {
     justifyContent: "center",
@@ -477,77 +417,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
-  },
-  header: {
-    paddingHorizontal: 28,
-    paddingTop: 30,
-    paddingBottom: 30,
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    flex: 1,
-  },
-  avatarContainer: {
-    position: "relative",
-    marginRight: 16,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#1E40AF",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
-    borderWidth: 2,
-    borderColor: "#3B82F6",
-  },
-  userText: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontWeight: "600",
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#1E293B",
-    lineHeight: 28,
-    marginBottom: 8,
-  },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1E40AF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "#3B82F6",
-  },
-  roleText: {
-    fontSize: 11,
-    color: "#FFFFFF",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
   },
   statsSection: {
     marginBottom: 28,
@@ -606,11 +475,11 @@ const styles = StyleSheet.create({
   },
   statCardPrimary: {
     borderLeftWidth: 4,
-    borderLeftColor: "#1E40AF",
+    borderLeftColor: colors.primaryDark,
   },
   statCardSuccess: {
     borderLeftWidth: 4,
-    borderLeftColor: "#059669",
+    borderLeftColor: colors.jugador,
   },
   statCardWarning: {
     borderLeftWidth: 4,
@@ -618,7 +487,7 @@ const styles = StyleSheet.create({
   },
   statCardInfo: {
     borderLeftWidth: 4,
-    borderLeftColor: "#7C3AED",
+    borderLeftColor: colors.apoderado,
   },
   statHeader: {
     flexDirection: "row",

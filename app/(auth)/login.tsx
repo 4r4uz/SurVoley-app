@@ -18,9 +18,11 @@ import {
 } from "react-native";
 import { supabase } from "../../supabase/supabaseClient";
 import { useAuth } from "../../types/use.auth";
+import { ROLE_ROUTE_MAP } from "../../types/auth.type";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
+import { colors, spacing, borderRadius, shadows, typography } from "../../constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -81,23 +83,15 @@ const LoginScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const routeMap = {
-        admin: "/(admin)",
-        jugador: "/(jugador)",
-        apoderado: "/(apoderado)",
-        entrenador: "/(entrenador)",
-      };
-
+    if (isAuthenticated && user?.rol) {
       const timer = setTimeout(() => {
-        router.replace(
-          routeMap[user.rol as keyof typeof routeMap] || "/(jugador)"
-        );
+        const route = ROLE_ROUTE_MAP[user.rol as keyof typeof ROLE_ROUTE_MAP] || ROLE_ROUTE_MAP.jugador;
+        router.replace(route);
       }, 100);
 
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, router]);
 
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
@@ -118,6 +112,7 @@ const LoginScreen: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
+  // iniciar sesion
   const handleLogin = async (): Promise<void> => {
     Keyboard.dismiss();
     setValidationErrors({});
@@ -214,8 +209,7 @@ const LoginScreen: React.FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <View style={styles.container}>
-        {/* elementos del fondo */}
+        <View style={styles.container}>
         <View style={styles.background}>
           <View style={[styles.circle, styles.circle1]} />
           <View style={[styles.circle, styles.circle2]} />
@@ -232,7 +226,6 @@ const LoginScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             bounces={true}
           >
-            {/* Header */}
             <Animated.View 
               style={[
                 styles.header,
@@ -259,7 +252,6 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.subtitle}>Accede a tu cuenta</Text>
             </Animated.View>
 
-            {/* Form Section */}
             <Animated.View 
               style={[
                 styles.formContainer,
@@ -271,10 +263,9 @@ const LoginScreen: React.FC = () => {
                 }
               ]}
             >
-              {/* Email */}
               <View style={styles.inputWrapper}>
                 <View style={styles.inputHeader}>
-                  <Ionicons name="mail" size={16} color="#3B82F6" />
+                  <Ionicons name="mail" size={16} color={colors.primaryLight} />
                   <Text style={styles.inputLabel}>EMAIL</Text>
                 </View>
                 <TextInput
@@ -283,7 +274,7 @@ const LoginScreen: React.FC = () => {
                     validationErrors.email && styles.inputError,
                   ]}
                   placeholder="tu@email.com"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.text.tertiary}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -305,10 +296,9 @@ const LoginScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Password */}
               <View style={styles.inputWrapper}>
                 <View style={styles.inputHeader}>
-                  <Ionicons name="lock-closed" size={16} color="#3B82F6" />
+                  <Ionicons name="lock-closed" size={16} color={colors.primaryLight} />
                   <Text style={styles.inputLabel}>CONTRASEÑA</Text>
                 </View>
                 <View style={styles.passwordContainer}>
@@ -319,7 +309,7 @@ const LoginScreen: React.FC = () => {
                       validationErrors.password && styles.inputError,
                     ]}
                     placeholder="••••••••"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.text.tertiary}
                     value={password}
                     onChangeText={(text) => {
                       setPassword(text);
@@ -344,7 +334,7 @@ const LoginScreen: React.FC = () => {
                     <Ionicons
                       name={showPassword ? "eye-off" : "eye"}
                       size={20}
-                      color="#6B7280"
+                      color={colors.text.secondary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -353,16 +343,15 @@ const LoginScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Opciones */}
               <View style={styles.optionsRow}>
                 <View style={styles.rememberContainer}>
                   <BouncyCheckbox
                     size={20}
-                    fillColor="#000000"
-                    unFillColor="#FFFFFF"
+                    fillColor={colors.text.primary}
+                    unFillColor={colors.background}
                     text="Recordarme"
                     iconStyle={{ 
-                      borderColor: "#D1D5DB", 
+                      borderColor: colors.border, 
                       borderRadius: 4,
                       borderWidth: 2
                     }}
@@ -370,7 +359,7 @@ const LoginScreen: React.FC = () => {
                     textStyle={{
                       fontFamily: "System",
                       fontSize: 14,
-                      color: "#374151",
+                      color: colors.text.primary,
                       textDecorationLine: "none",
                       fontWeight: "500",
                     }}
@@ -385,7 +374,6 @@ const LoginScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* botón iniciar sesión */}
               <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleSubmit}
@@ -394,16 +382,15 @@ const LoginScreen: React.FC = () => {
               >
                 <View style={styles.buttonBackground} />
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={colors.text.inverse} size="small" />
                 ) : (
                   <View style={styles.buttonContent}>
                     <Text style={styles.buttonText}>ACCEDER</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                    <Ionicons name="arrow-forward" size={20} color={colors.text.inverse} />
                   </View>
                 )}
               </TouchableOpacity>
 
-              {/* acceso rapido */}
               <View style={styles.quickAccess}>
                 <View style={styles.quickAccessHeader}>
                   <View style={styles.divider} />
@@ -460,7 +447,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   background: {
     ...StyleSheet.absoluteFillObject,
@@ -468,7 +455,7 @@ const styles = StyleSheet.create({
   circle: {
     position: 'absolute',
     borderRadius: 500,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surface,
   },
   circle1: {
     width: 300,
@@ -509,12 +496,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#000000',
+    backgroundColor: colors.text.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000000',
+    borderColor: colors.background,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -527,7 +514,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#000000',
+    backgroundColor: colors.text.primary,
     opacity: 0.1,
     top: -10,
     left: -10,
@@ -540,28 +527,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: '900',
-    color: '#000000',
+    color: colors.text.primary,
     marginBottom: 8,
     letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.text.secondary,
     fontWeight: '500',
     letterSpacing: 1,
   },
   formContainer: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
-    padding: 32,
-    borderRadius: 24,
-    shadowColor: '#000000',
+    backgroundColor: colors.background,
+    marginHorizontal: spacing.xxl,
+    padding: spacing.xxxl,
+    borderRadius: borderRadius.xl,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.1,
     shadowRadius: 30,
     elevation: 15,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.borderLight,
   },
   inputWrapper: {
     marginBottom: 24,
@@ -575,20 +562,20 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.text.primary,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#F9FAFB',
-    padding: 20,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text.primary,
     fontWeight: '500',
     borderWidth: 2,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000000',
+    borderColor: colors.borderLight,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -607,10 +594,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: colors.error,
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.error,
     fontSize: 12,
     marginTop: 6,
     marginLeft: 4,
@@ -627,16 +614,16 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     fontSize: 14,
-    color: '#3B82F6',
+    color: colors.primaryLight,
     fontWeight: '600',
   },
   button: {
-    backgroundColor: '#000000',
-    padding: 20,
-    borderRadius: 16,
+    backgroundColor: colors.text.primary,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
     marginBottom: 30,
     overflow: 'hidden',
-    shadowColor: '#000000',
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -644,7 +631,7 @@ const styles = StyleSheet.create({
   },
   buttonBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
+    backgroundColor: colors.text.primary,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -656,7 +643,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.text.inverse,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 1,
@@ -672,11 +659,11 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
   },
   quickAccessText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.text.secondary,
     fontWeight: '600',
     marginHorizontal: 12,
     letterSpacing: 1,
@@ -695,23 +682,23 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    shadowColor: '#000000',
+    borderRadius: borderRadius.md,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-    backgroundColor: '#3B82F6'
+    backgroundColor: colors.primaryLight
   },
   demoButtonText: {
-    color: '#FFFFFF',
+    color: colors.text.inverse,
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
   demoNote: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: colors.text.tertiary,
     textAlign: 'center',
     fontStyle: 'italic',
   },

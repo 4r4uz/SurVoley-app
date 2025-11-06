@@ -1,7 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from "../supabase/supabaseClient";
-import { User, UseAuthReturn } from "../types/auth.type";
+import { 
+  User, 
+  UseAuthReturn, 
+  validateUser,
+  USER_ROLES 
+} from "../types/auth.type";
 
 const USER_STORAGE_KEY = "currentUser";
 const SESSION_CHECK_KEY = "sessionChecked";
@@ -98,7 +103,7 @@ export const useAuth = (): UseAuthReturn => {
       if (user) {
         console.log("Usuario encontrado en SecureStore (recordarme activado):", user);
         
-        if (user.id && user.email && user.rol) {
+        if (validateUser(user)) {
           cachedUser = user;
           globalSessionChecked = true;
 
@@ -111,7 +116,7 @@ export const useAuth = (): UseAuthReturn => {
           }
         } else {
           await clearStorage();
-          throw new Error("Datos de usuario corruptos");
+          throw new Error("Datos de usuario corruptos o inválidos");
         }
       } else {
         console.log("No hay sesión guardada o recordarme desactivado");
@@ -150,10 +155,12 @@ export const useAuth = (): UseAuthReturn => {
     }
   };
 
-  const setUser = async (user: User, rememberMe: boolean = false): Promise<void> => {
+  const setUser = useCallback(async (
+    user: User, 
+    rememberMe: boolean = false
+  ): Promise<void> => {
     try {
-      // Validar estructura del usuario antes de almacenar
-      if (!user.id || !user.email || !user.rol) {
+      if (!validateUser(user)) {
         throw new Error("Estructura de usuario inválida");
       }
 
@@ -173,9 +180,9 @@ export const useAuth = (): UseAuthReturn => {
       console.error("Error setting user:", error);
       throw error;
     }
-  };
+  }, []);
 
-  const signOut = async (): Promise<void> => {
+  const signOut = useCallback(async (): Promise<void> => {
     try {
       await clearStorage();
 
@@ -192,7 +199,7 @@ export const useAuth = (): UseAuthReturn => {
       console.error("Error en cerrar sesión:", error);
       throw error;
     }
-  };
+  }, []);
 
   return {
     ...authState,

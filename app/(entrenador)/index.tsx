@@ -11,6 +11,9 @@ import { useAuth } from "../../types/use.auth";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../supabase/supabaseClient";
+import RoleBadge from "../../components/RoleBadge";
+import { formatDate } from "../../utils/dateHelpers";
+import { colors, spacing, borderRadius, shadows, typography } from "../../constants/theme";
 
 interface NextEvent {
   id: string;
@@ -125,16 +128,13 @@ export default function EntrenadorHome() {
     ]);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDateForEvent = (dateString: string) => {
+    const formatted = formatDate(dateString);
     return {
-      day: date.getDate().toString(),
-      month: date.toLocaleDateString("es-ES", { month: "short" }),
-      weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
-      time: date.toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      day: formatted.day.toString(),
+      month: formatted.month,
+      weekday: formatted.weekday,
+      time: formatted.time,
     };
   };
 
@@ -170,10 +170,7 @@ export default function EntrenadorHome() {
           ¡Hola, Entrenador {user?.nombre || ""}!
         </Text>
         <Text style={styles.userInfo}>Bienvenido a SURVOLEY APP</Text>
-        <View style={styles.roleBadge}>
-          <Ionicons name="fitness" size={14} color="#fff" />
-          <Text style={styles.roleText}>Entrenador</Text>
-        </View>
+        <RoleBadge rol="entrenador" size="md" />
       </View>
 
       <ScrollView style={styles.scrollContent}>
@@ -182,7 +179,7 @@ export default function EntrenadorHome() {
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <Ionicons name="refresh" size={24} color="#3f3db8ff" />
+              <Ionicons name="refresh" size={24} color={colors.entrenador} />
               <Text style={styles.loadingText}>Cargando eventos...</Text>
             </View>
           ) : nextEvents.length === 0 ? (
@@ -192,7 +189,7 @@ export default function EntrenadorHome() {
             </View>
           ) : (
             nextEvents.map((event, index) => {
-              const formattedDate = formatDate(event.fecha_hora);
+              const formattedDate = formatDateForEvent(event.fecha_hora);
               const eventColor = getEventColor(
                 event.tipo_evento,
                 event.esEvento
@@ -253,7 +250,7 @@ export default function EntrenadorHome() {
                 <Ionicons
                   name={feature.icon as any}
                   size={28}
-                  color="#3f3db8ff"
+                  color={colors.entrenador}
                 />
               </View>
               <View style={styles.featureContent}>
@@ -279,16 +276,16 @@ export default function EntrenadorHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: colors.surface,
   },
   header: {
-    backgroundColor: "#3f3db8ff",
-    padding: 20,
-    paddingTop: 15,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: colors.entrenador,
+    padding: spacing.xl,
+    paddingTop: spacing.lg,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
     alignItems: "center",
-    shadowColor: "#3f3db8ff",
+    shadowColor: colors.entrenador,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -324,20 +321,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
     marginBottom: 8,
-  },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 5,
-  },
-  roleText: {
-    fontSize: 12,
-    color: "white",
-    fontWeight: "600",
   },
   scrollContent: {
     flex: 1,

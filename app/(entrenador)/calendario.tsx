@@ -10,15 +10,12 @@ import {
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { colors, spacing, borderRadius, typography } from "../../constants/theme";
 
 export default function Calendario() {
   const [eventos, setEventos] = useState<{ [key: string]: any }>({});
   const [proximoEvento, setProximoEvento] = useState<string>("");
-
-  // Horario permitido para asistencia
   const [horarioAsistencia, setHorarioAsistencia] = useState({ inicio: 9, fin: 12 });
-
-  // Controladores de selección
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string | null>(null);
   const [tipoEvento, setTipoEvento] = useState<string | null>(null);
   const [horaSeleccionada, setHoraSeleccionada] = useState<Date | null>(null);
@@ -26,7 +23,6 @@ export default function Calendario() {
   const [seleccionando, setSeleccionando] = useState<"inicio" | "fin" | null>(null);
   const [horaTemp, setHoraTemp] = useState(new Date());
 
-  // Cuando se toca una fecha en el calendario
   const onDayPress = (day: any) => {
     setFechaSeleccionada(day.dateString);
     Alert.alert("Nuevo evento", `Seleccionaste ${day.dateString}`, [
@@ -56,7 +52,7 @@ export default function Calendario() {
     setPickerVisible(false);
   };
 
-  // Confirmar evento con fecha y hora unificadas
+  // confirmar evento
   const confirmarEvento = async () => {
     if (!fechaSeleccionada || !horaSeleccionada || !tipoEvento) {
       Alert.alert("Faltan datos", "Selecciona una fecha, tipo y hora antes de confirmar.");
@@ -71,16 +67,15 @@ export default function Calendario() {
       ...prev,
       [fechaSeleccionada]: {
         marked: true,
-        dotColor: tipoEvento === "Entrenamiento" ? "#007AFF" : "#FF5733",
+        dotColor: tipoEvento === "Entrenamiento" ? colors.primary : colors.error,
         selected: true,
-        selectedColor: "#ccc",
+        selectedColor: colors.border,
         customText: `${tipoEvento} - ${fechaHora}`,
         tipo: tipoEvento,
         hora: fechaHora,
       },
     }));
 
-    // Actualiza horario permitido (por ejemplo, de 18:00 a 20:00)
     const horaInicio = horaSeleccionada.getHours();
     const nuevoHorario = { inicio: horaInicio, fin: horaInicio + 2 };
     setHorarioAsistencia(nuevoHorario);
@@ -91,7 +86,6 @@ export default function Calendario() {
     setHoraSeleccionada(null);
   };
 
-  // Cargar horario almacenado
   useEffect(() => {
     const cargarHorario = async () => {
       const data = await AsyncStorage.getItem("horarioAsistencia");
@@ -100,7 +94,6 @@ export default function Calendario() {
     cargarHorario();
   }, []);
 
-  // Calcular próximo evento
   useEffect(() => {
     const fechas = Object.keys(eventos);
     if (fechas.length > 0) {
@@ -117,7 +110,6 @@ export default function Calendario() {
     } else setProximoEvento("No hay eventos agendados");
   }, [eventos]);
 
-  // Selector de hora editable de asistencia
   const abrirSelector = (tipo: "inicio" | "fin") => {
     setSeleccionando(tipo);
     setHoraTemp(new Date());
@@ -148,9 +140,9 @@ export default function Calendario() {
         markedDates={eventos}
         onDayPress={onDayPress}
         theme={{
-          selectedDayBackgroundColor: "#007AFF",
-          todayTextColor: "#FF5733",
-          arrowColor: "#007AFF",
+          selectedDayBackgroundColor: colors.primary,
+          todayTextColor: colors.error,
+          arrowColor: colors.primary,
         }}
       />
 
@@ -168,7 +160,7 @@ export default function Calendario() {
           </Text>
 
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: "#007AFF" }]}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={confirmarEvento}
           >
             <Text style={styles.btnText}>Confirmar</Text>
@@ -176,20 +168,19 @@ export default function Calendario() {
         </View>
       )}
 
-      {/* Sección editable del horario de asistencia */}
       <View style={styles.horarioBox}>
         <Text style={styles.horario}>
           🕒 Horario permitido: {horarioAsistencia.inicio}:00 - {horarioAsistencia.fin}:00
         </Text>
         <View style={styles.botonesBox}>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: "#007AFF" }]}
+            style={[styles.btn, { backgroundColor: colors.primary }]}
             onPress={() => abrirSelector("inicio")}
           >
             <Text style={styles.btnText}>Cambiar inicio</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: "#28a745" }]}
+            style={[styles.btn, { backgroundColor: colors.success }]}
             onPress={() => abrirSelector("fin")}
           >
             <Text style={styles.btnText}>Cambiar fin</Text>
@@ -197,7 +188,6 @@ export default function Calendario() {
         </View>
       </View>
 
-      {/* Selector de hora nativo */}
       {pickerVisible && !seleccionando && (
         <DateTimePicker
           value={new Date()}
@@ -222,44 +212,60 @@ export default function Calendario() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 10,
+  container: { 
+    flex: 1, 
+    padding: spacing.md,
+    backgroundColor: colors.background,
   },
-  aviso: { textAlign: "center", fontSize: 16, color: "#333", marginVertical: 8 },
+  title: {
+    ...typography.h2,
+    textAlign: "center",
+    marginVertical: spacing.md,
+  },
+  aviso: { 
+    textAlign: "center", 
+    ...typography.body,
+    color: colors.text.primary, 
+    marginVertical: spacing.sm,
+  },
   confirmBox: {
-    marginTop: 15,
-    backgroundColor: "#eef6ff",
-    padding: 15,
-    borderRadius: 10,
+    marginTop: spacing.lg,
+    backgroundColor: colors.bubble1,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
     alignItems: "center",
   },
   confirmText: {
+    ...typography.label,
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    color: colors.text.primary,
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: spacing.md,
   },
   horarioBox: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: "#eef",
-    borderRadius: 10,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    backgroundColor: colors.bubble1,
+    borderRadius: borderRadius.md,
   },
-  horario: { textAlign: "center", color: "#333", fontWeight: "600" },
+  horario: { 
+    textAlign: "center", 
+    color: colors.text.primary, 
+    fontWeight: "600",
+  },
   botonesBox: {
     flexDirection: "row",
     justifyContent: "space-evenly",
-    marginTop: 10,
+    marginTop: spacing.md,
   },
   btn: {
-    padding: 10,
-    borderRadius: 8,
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
     width: 140,
   },
-  btnText: { color: "#fff", textAlign: "center", fontWeight: "bold" },
+  btnText: { 
+    color: colors.text.inverse, 
+    textAlign: "center", 
+    fontWeight: "bold",
+  },
 });

@@ -17,6 +17,9 @@ import { supabase } from "../../supabase/supabaseClient";
 import { useAuth } from "../../types/use.auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { StatsCard } from "../../components/StatsCard";
+import { formatDateShort, obtenerNombreMes, formatearMonto } from "../../utils/dateHelpers";
+import { colors } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -85,17 +88,6 @@ const verificarYMensualidadActual = async (idJugador: string) => {
   }
 };
 
-const StatsCard = React.memo(({ icon, value, label, color }: any) => {
-  return (
-    <View style={styles.statsCard}>
-      <View style={[styles.statsIcon, { backgroundColor: color + "15" }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={styles.statsValue}>{value}</Text>
-      <Text style={styles.statsLabel}>{label}</Text>
-    </View>
-  );
-});
 
 const PaymentCard = React.memo(
   ({
@@ -107,79 +99,47 @@ const PaymentCard = React.memo(
     onPay: (item: Mensualidad) => void;
     tipo: "proximo" | "pendiente" | "pagado";
   }) => {
-    const formatearMonto = (monto: number) => {
-      return `$${monto.toLocaleString("es-CL")}`;
-    };
-
     const formatearFecha = (fechaString: string | null) => {
-      if (!fechaString) return "Pendiente";
-      try {
-        const fecha = new Date(fechaString);
-        return fecha.toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        });
-      } catch {
-        return "Fecha inválida";
-      }
-    };
-
-    const obtenerNombreMes = (mes: string) => {
-      const meses: { [key: string]: string } = {
-        "01": "Enero",
-        "02": "Febrero",
-        "03": "Marzo",
-        "04": "Abril",
-        "05": "Mayo",
-        "06": "Junio",
-        "07": "Julio",
-        "08": "Agosto",
-        "09": "Septiembre",
-        "10": "Octubre",
-        "11": "Noviembre",
-        "12": "Diciembre",
-      };
-      return meses[mes] || mes;
+      return formatDateShort(fechaString);
     };
 
     const getCardConfig = (tipo: string, isOverdue: boolean) => {
       switch (tipo) {
         case "proximo":
           return {
-            borderColor: "#3B82F6",
+            borderColor: colors.primaryLight,
             backgroundColor: "#EFF6FF",
             icon: "calendar",
-            iconColor: "#3B82F6",
+            iconColor: colors.primaryLight,
             badgeText: "PRÓXIMO",
-            badgeColor: "#3B82F6",
+            badgeColor: colors.primaryLight,
           };
         case "pendiente":
           return isOverdue
             ? {
-                borderColor: "#EF4444",
+                borderColor: colors.error,
                 backgroundColor: "#FEF2F2",
                 icon: "warning",
-                iconColor: "#EF4444",
+                iconColor: colors.error,
                 badgeText: "VENCIDO",
-                badgeColor: "#EF4444",
+                badgeColor: colors.error,
               }
             : {
-                borderColor: "#F59E0B",
+                borderColor: colors.warning,
                 backgroundColor: "#FFFBEB",
                 icon: "time",
-                iconColor: "#F59E0B",
+                iconColor: colors.warning,
                 badgeText: "PENDIENTE",
-                badgeColor: "#F59E0B",
+                badgeColor: colors.warning,
               };
         case "pagado":
           return {
-            borderColor: "#10B981",
+            borderColor: colors.success,
             backgroundColor: "#F0FDF4",
             icon: "checkmark-circle",
-            iconColor: "#10B981",
+            iconColor: colors.success,
             badgeText: "PAGADO",
-            badgeColor: "#10B981",
+            badgeColor: colors.success,
           };
         default:
           return {
@@ -296,23 +256,6 @@ const PaymentMethodScreen = ({
     },
   ];
 
-  const obtenerNombreMes = (mes: string) => {
-    const meses: { [key: string]: string } = {
-      "01": "Enero",
-      "02": "Febrero",
-      "03": "Marzo",
-      "04": "Abril",
-      "05": "Mayo",
-      "06": "Junio",
-      "07": "Julio",
-      "08": "Agosto",
-      "09": "Septiembre",
-      "10": "Octubre",
-      "11": "Noviembre",
-      "12": "Diciembre",
-    };
-    return meses[mes] || mes;
-  };
 
   const handlePayment = async (method: PaymentMethod) => {
     try {
@@ -359,7 +302,7 @@ const PaymentMethodScreen = ({
             {mensualidad.anio_referencia}
           </Text>
           <Text style={styles.paymentAmount}>
-            ${mensualidad.monto.toLocaleString("es-CL")}
+            {formatearMonto(mensualidad.monto)}
           </Text>
         </View>
       </View>
@@ -549,7 +492,7 @@ const PagosScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
+        <StatusBar backgroundColor={colors.primaryDark} barStyle="light-content" />
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.headerTextContainer}>
@@ -569,7 +512,7 @@ const PagosScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#1E293B" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.primaryDark} barStyle="light-content" />
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
@@ -588,8 +531,8 @@ const PagosScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#2563EB"]}
-            tintColor="#2563EB"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
@@ -597,21 +540,21 @@ const PagosScreen = () => {
           <View style={styles.statsGrid}>
             <StatsCard
               icon="document-text"
-              value={resumen.total}
+              value={resumen.total.toString()}
               label="Total"
-              color="#2563EB"
+              color={colors.primary}
             />
             <StatsCard
               icon="checkmark-circle"
-              value={resumen.pagados}
+              value={resumen.pagados.toString()}
               label="Pagados"
-              color="#10B981"
+              color={colors.success}
             />
             <StatsCard
               icon="time"
-              value={resumen.totalPendientes}
+              value={resumen.totalPendientes.toString()}
               label="Pendientes"
-              color="#F59E0B"
+              color={colors.warning}
             />
           </View>
         </View>
@@ -619,7 +562,7 @@ const PagosScreen = () => {
         {proximas.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar" size={20} color="#3B82F6" />
+              <Ionicons name="calendar" size={20} color={colors.primaryLight} />
               <Text style={styles.sectionTitle}>Próximas Mensualidades</Text>
             </View>
             <View style={styles.paymentsList}>
@@ -700,10 +643,10 @@ const PagosScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: "#1E293B",
+    backgroundColor: colors.primaryDark,
     paddingHorizontal: 20,
     paddingTop: 25,
     paddingBottom: 20,

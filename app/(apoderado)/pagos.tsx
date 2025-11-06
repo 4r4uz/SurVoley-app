@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { colors, typography } from "../../constants/theme";
 
 export default function Pagos() {
   const handlePago = () => {
@@ -13,7 +14,14 @@ export default function Pagos() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  text: { marginBottom: 20 },
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center",
+    backgroundColor: colors.background,
+  },
+  title: { 
+    ...typography.h2,
+    marginBottom: 10,
+  },
 });
