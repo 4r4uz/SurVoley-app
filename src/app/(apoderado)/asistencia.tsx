@@ -1,0 +1,406 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Dimensions,
+} from "react-native";
+import { useAuth } from "../../core/auth/AuthContext";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../../core/supabase/supabaseClient";
+import SafeLayout from "../../shared/components/SafeLayout";
+import UserHeader from "../../shared/components/UserHeader";
+import { colors } from "../../shared/constants/theme";
+
+const { width } = Dimensions.get("window");
+
+interface Asistencia {
+  id_asistencia: string;
+  fecha_asistencia: string;
+  estado_asistencia: string;
+  observaciones: string | null;
+  entrenamiento?: {
+    fecha_hora: string;
+    lugar: string;
+    descripcion: string;
+  };
+  jugador?: {
+    nombre: string;
+    apellido: string;
+  };
+}
+
+export default function ApoderadoAsistenciaScreen() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const cargarAsistencias = async () => {
+    try {
+      setLoading(true);
+
+      // Obtener los hijos del apoderado (jugadores asociados)
+      const { data: hijos, error: errorHijos } = await supabase
+        .from("Apoderado_Jugador")
+        .select("id_jugador")
+        .eq("id_apoderado", user?.id);
+
+      if (errorHijos) throw errorHijos;
+
+      if (!hijos || hijos.length === 0) {
+        setAsistencias([]);
+        return;
+      }
+
+      const idsHijos = hijos.map(h => h.id_jugador);
+
+      // Obtener asistencias de los hijos
+      const { data, error } = await supabase
+        .from("Asistencia")
+        .select(`
+          *,
+          jugador:Usuarios!Asistencia_id_jugador_fkey (
+            nombre,
+            apellido
+          ),
+          entrenamiento:Entrenamiento!Asistencia_id_entrenamiento_fkey (
+            fecha_hora,
+            lugar,
+            descripcion
+          )
+        `)
+        .in("id_jugador", idsHijos)
+        .order("fecha_asistencia", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setAsistencias(data || []);
+    } catch (error) {
+      console.error("Error cargando asistencias:", error);
+      Alert.alert("Error", "No se pudieron cargar las asistencias");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarAsistencias();
+  }, []);
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case "Presente": return "#059669";
+      case "Ausente": return "#DC2626";
+      case "Justificado": return "#D97706";
+      default: return "#6B7280";
+    }
+  };
+
+  const getEstadoIcon = (estado: string) => {
+    switch (estado) {
+      case "Presente": return "checkmark-circle";
+      case "Ausente": return "close-circle";
+      case "Justificado": return "alert-circle";
+      default: return "help-circle";
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const calcularEstadisticas = () => {
+    const total = asistencias.length;
+    const presentes = asistencias.filter(a => a.estado_asistencia === "Presente").length;
+    const ausentes = asistencias.filter(a => a.estado_asistencia === "Ausente").length;
+    const justificados = asistencias.filter(a => a.estado_asistencia === "Justificado").length;
+
+    return { total, presentes, ausentes, justificados };
+  };
+
+  const estadisticas = calcularEstadisticas();
+
+  if (loading) {
+    return (
+      <SafeLayout>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.apoderado} />
+          <Text style={styles.loadingText}>Cargando asistencias...</Text>
+        </View>
+      </SafeLayout>
+    );
+  }
+
+  return (
+    <SafeLayout>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <UserHeader
+          user={user}
+          greeting="Control de Asistencias"
+          avatarColor={colors.apoderado}
+          roleText="Apoderado"
+        />
+
+        <View style={styles.stats}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{estadisticas.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={[styles.statCard, styles.statPositive]}>
+            <Text style={styles.statNumber}>{estadisticas.presentes}</Text>
+            <Text style={styles.statLabel}>Presentes</Text>
+          </View>
+          <View style={[styles.statCard, styles.statWarning]}>
+            <Text style={styles.statNumber}>{estadisticas.ausentes}</Text>
+            <Text style={styles.statLabel}>Ausentes</Text>
+          </View>
+          <View style={[styles.statCard, styles.statInfo]}>
+            <Text style={styles.statNumber}>{estadisticas.justificados}</Text>
+            <Text style={styles.statLabel}>Justificados</Text>
+          </View>
+        </View>
+
+        <View style={styles.asistenciasList}>
+          <View style={styles.listHeader}>
+            <Text style={styles.listTitle}>Asistencias Recientes</Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={cargarAsistencias}>
+              <Ionicons name="refresh" size={16} color={colors.apoderado} />
+            </TouchableOpacity>
+          </View>
+
+          {asistencias.map((asistencia) => (
+            <View key={asistencia.id_asistencia} style={styles.asistenciaCard}>
+              <View style={styles.asistenciaHeader}>
+                <View style={styles.jugadorInfo}>
+                  <Text style={styles.jugadorName}>
+                    {asistencia.jugador?.nombre} {asistencia.jugador?.apellido}
+                  </Text>
+                  <Text style={styles.entrenamientoText}>
+                    {asistencia.entrenamiento?.descripcion || "Entrenamiento"}
+                  </Text>
+                </View>
+                <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(asistencia.estado_asistencia) }]}>
+                  <Ionicons name={getEstadoIcon(asistencia.estado_asistencia) as any} size={12} color="#FFFFFF" />
+                  <Text style={styles.estadoText}>{asistencia.estado_asistencia}</Text>
+                </View>
+              </View>
+
+              <View style={styles.asistenciaContent}>
+                <View style={styles.fechaInfo}>
+                  <Ionicons name="calendar" size={14} color="#6B7280" />
+                  <Text style={styles.fechaText}>
+                    {formatDate(asistencia.fecha_asistencia)}
+                  </Text>
+                </View>
+                {asistencia.entrenamiento?.lugar && (
+                  <View style={styles.lugarInfo}>
+                    <Ionicons name="location" size={14} color="#6B7280" />
+                    <Text style={styles.lugarText}>{asistencia.entrenamiento.lugar}</Text>
+                  </View>
+                )}
+              </View>
+
+              {asistencia.observaciones && (
+                <View style={styles.observacionContainer}>
+                  <Ionicons name="chatbubble" size={14} color="#6B7280" />
+                  <Text style={styles.observacionText} numberOfLines={2}>
+                    {asistencia.observaciones}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ))}
+
+          {asistencias.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="calendar-outline" size={48} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>No hay asistencias</Text>
+              <Text style={styles.emptyDescription}>
+                No se encontraron registros de asistencia para tus hijos
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </SafeLayout>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#6B7280",
+  },
+  stats: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  statPositive: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#059669",
+  },
+  statWarning: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#D97706",
+  },
+  statInfo: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#7C3AED",
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  asistenciasList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  listHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  listTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  refreshButton: {
+    padding: 8,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+  },
+  asistenciaCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  asistenciaHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  jugadorInfo: {
+    flex: 1,
+  },
+  jugadorName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  entrenamientoText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  estadoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  estadoText: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  asistenciaContent: {
+    gap: 8,
+  },
+  fechaInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  fechaText: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  lugarInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  lugarText: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  observacionContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  observacionText: {
+    fontSize: 12,
+    color: "#6B7280",
+    flex: 1,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    padding: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    color: "#374151",
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+});
