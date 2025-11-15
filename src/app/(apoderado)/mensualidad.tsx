@@ -13,6 +13,7 @@ import { useAuth } from "../../core/auth/AuthContext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
+import { UserService } from "../../core/services";
 import SafeLayout from "../../shared/components/SafeLayout";
 import UserHeader from "../../shared/components/UserHeader";
 import { colors } from "../../shared/constants/theme";
@@ -43,36 +44,34 @@ export default function ApoderadoMensualidadScreen() {
     try {
       setLoading(true);
 
-      // Obtener los hijos del apoderado (jugadores asociados)
-      const { data: hijos, error: errorHijos } = await supabase
-        .from("Apoderado_Jugador")
-        .select("id_jugador")
-        .eq("id_apoderado", user?.id);
-
-      if (errorHijos) throw errorHijos;
-
-      if (!hijos || hijos.length === 0) {
+      if (!user?.id) {
         setMensualidades([]);
         return;
       }
 
-      const idsHijos = hijos.map(h => h.id_jugador);
+      // Obtener directamente el id_jugador_tutorado del apoderado
+      const { data: apoderadoData, error: apoderadoError } = await supabase
+        .from('Apoderado')
+        .select('id_jugador_tutorado')
+        .eq('id_apoderado', user.id)
+        .single();
 
-      // Obtener mensualidades de los hijos
-      const { data, error } = await supabase
+      if (apoderadoError || !apoderadoData?.id_jugador_tutorado) {
+        setMensualidades([]);
+        return;
+      }
+
+      const idJugadorTutorado = apoderadoData.id_jugador_tutorado;
+
+      // Obtener mensualidades del jugador tutorado
+      const { data: mensualidadesData, error } = await supabase
         .from("Mensualidad")
-        .select(`
-          *,
-          jugador:Usuarios!Mensualidad_id_jugador_fkey (
-            nombre,
-            apellido
-          )
-        `)
-        .in("id_jugador", idsHijos)
+        .select("*")
+        .eq("id_jugador", idJugadorTutorado)
         .order("fecha_vencimiento", { ascending: false });
 
       if (error) throw error;
-      setMensualidades(data || []);
+      setMensualidades(mensualidadesData || []);
     } catch (error) {
       console.error("Error cargando mensualidades:", error);
       Alert.alert("Error", "No se pudieron cargar las mensualidades");
@@ -82,8 +81,10 @@ export default function ApoderadoMensualidadScreen() {
   };
 
   useEffect(() => {
-    cargarMensualidades();
-  }, []);
+    if (user?.id) {
+      cargarMensualidades();
+    }
+  }, [user?.id]);
 
   const formatearMonto = (monto: number) => {
     return `$${monto.toLocaleString("es-CL")}`;

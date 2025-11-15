@@ -40,6 +40,7 @@ export interface UserValidation {
 }
 
 export interface UseAuthReturn extends AuthState {
+  signIn?: (credentials: LoginCredentials) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User, rememberMe?: boolean) => Promise<void>;
 }

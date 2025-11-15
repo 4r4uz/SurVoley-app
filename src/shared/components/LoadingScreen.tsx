@@ -1,28 +1,53 @@
 import React from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
-import { colors } from '../constants/theme';
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { colors } from "../constants/theme";
 
 interface LoadingScreenProps {
   message?: string;
+  fullScreen?: boolean;
 }
 
-export default function LoadingScreen({ message = "Cargando..." }: LoadingScreenProps) {
+//Componente de pantalla de carga completa
+
+export default function LoadingScreen({
+  message = "Cargando...",
+  fullScreen = true
+}: LoadingScreenProps) {
+  const containerStyle = fullScreen
+    ? styles.fullScreenContainer
+    : styles.container;
+
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.text}>{message}</Text>
+    <View style={containerStyle}>
+      <View style={styles.content}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.message}>{message}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
-  text: {
-    marginTop: 10,
+  content: {
+    alignItems: "center",
+    gap: 16,
+  },
+  message: {
+    fontSize: 16,
     color: colors.text.secondary,
+    fontWeight: "500",
+    textAlign: "center",
   },
 });

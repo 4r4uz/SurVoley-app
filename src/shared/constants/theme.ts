@@ -114,6 +114,184 @@ export const typography = {
   },
 };
 
+// Estilos comunes reutilizables
+export const commonStyles = {
+  // Tarjetas base
+  card: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    shadowColor: colors.text.primary,
+    shadowOffset: shadows.sm.shadowOffset,
+    shadowOpacity: shadows.sm.shadowOpacity,
+    shadowRadius: shadows.sm.shadowRadius,
+    elevation: shadows.sm.elevation,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  // Tarjetas con fondo blanco
+  whiteCard: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    shadowColor: colors.text.primary,
+    shadowOffset: shadows.sm.shadowOffset,
+    shadowOpacity: shadows.sm.shadowOpacity,
+    shadowRadius: shadows.sm.shadowRadius,
+    elevation: shadows.sm.elevation,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  // Tarjetas elevadas (más prominentes)
+  elevatedCard: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xxl,
+    shadowColor: colors.text.primary,
+    shadowOffset: shadows.md.shadowOffset,
+    shadowOpacity: shadows.md.shadowOpacity,
+    shadowRadius: shadows.md.shadowRadius,
+    elevation: shadows.md.elevation,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  // Botones primarios
+  primaryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    shadowColor: colors.primary,
+    shadowOffset: shadows.sm.shadowOffset,
+    shadowOpacity: 0.2,
+    shadowRadius: shadows.sm.shadowRadius,
+    elevation: shadows.sm.elevation,
+  },
+
+  // Botones secundarios
+  secondaryButton: {
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  // Botones de acción rápida (círculos pequeños)
+  actionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    shadowColor: colors.text.primary,
+    shadowOffset: shadows.sm.shadowOffset,
+    shadowOpacity: shadows.sm.shadowOpacity,
+    shadowRadius: shadows.sm.shadowRadius,
+    elevation: shadows.sm.elevation,
+  },
+
+  // Contenedores de iconos
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+
+  // Contenedores de iconos pequeños
+  smallIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+
+  // Elementos de detalle (ubicación, hora, etc.)
+  detailItem: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: spacing.sm,
+  },
+
+  // Headers de sección
+  sectionHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+
+  // Contenedores de búsqueda
+  searchContainer: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.text.primary,
+    shadowOffset: shadows.sm.shadowOffset,
+    shadowOpacity: shadows.sm.shadowOpacity,
+    shadowRadius: shadows.sm.shadowRadius,
+    elevation: shadows.sm.elevation,
+  },
+
+  // Filtros de tipo
+  typeFilter: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 25,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
+  },
+
+  // Badges de estado
+  statusBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.xl,
+    gap: spacing.xs,
+  },
+
+  // Headers de tarjetas
+  cardHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+
+  // Contenido de tarjetas
+  cardContent: {
+    gap: spacing.sm,
+  },
+
+  // Contenedores vacíos
+  emptyContainer: {
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    padding: spacing.xxxl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: "dashed" as const,
+  },
+};
+
 /**
  * Obtiene el color asociado a un rol
  */

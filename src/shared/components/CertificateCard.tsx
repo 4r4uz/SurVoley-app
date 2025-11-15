@@ -1,6 +1,13 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../constants/theme';
 
 interface CertificateType {
   id: string;
@@ -16,100 +23,120 @@ interface CertificateCardProps {
   generating: boolean;
 }
 
-export default function CertificateCard({
+export const CertificateCard: React.FC<CertificateCardProps> = ({
   certificate,
   onGenerate,
-  generating
-}: CertificateCardProps) {
+  generating,
+}) => {
   return (
-    <TouchableOpacity
-      style={styles.certificateCard}
-      onPress={onGenerate}
-      disabled={generating}
-      activeOpacity={0.8}
-    >
-      <View style={styles.cardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: certificate.color + "15" }]}>
-          <Ionicons name={certificate.icon as any} size={28} color={certificate.color} />
+    <View style={styles.card}>
+      <View style={styles.cardContent}>
+        <View style={styles.iconContainer}>
+          <View
+            style={[
+              styles.iconBackground,
+              { backgroundColor: certificate.color + '15' },
+            ]}
+          >
+            <Ionicons
+              name={certificate.icon as any}
+              size={28}
+              color={certificate.color}
+            />
+          </View>
         </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{certificate.title}</Text>
-          <Text style={styles.cardDescription}>{certificate.description}</Text>
-        </View>
-      </View>
 
-      <View style={styles.cardFooter}>
-        <View style={[styles.generateButton, { backgroundColor: certificate.color + "20" }]}>
-          {generating ? (
-            <Ionicons name="refresh" size={16} color={certificate.color} />
-          ) : (
-            <Ionicons name="download" size={16} color={certificate.color} />
-          )}
-          <Text style={[styles.generateButtonText, { color: certificate.color }]}>
-            {generating ? 'Generando...' : 'Descargar PDF'}
-          </Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>{certificate.title}</Text>
+          <Text style={styles.description}>{certificate.description}</Text>
+        </View>
+
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            style={[
+              styles.generateButton,
+              { backgroundColor: certificate.color },
+              generating && styles.disabledButton,
+            ]}
+            onPress={onGenerate}
+            disabled={generating}
+            activeOpacity={0.8}
+          >
+            {generating ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Ionicons name="download" size={16} color="#FFFFFF" />
+                <Text style={styles.buttonText}>Generar</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  certificateCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 16,
-  },
-  iconContainer: {
-    width: 54,
-    height: 54,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
   },
   cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    marginRight: 16,
+  },
+  iconBackground: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textContainer: {
     flex: 1,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 6,
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
   },
-  cardDescription: {
-    fontSize: 14,
-    color: "#6B7280",
-    lineHeight: 20,
+  description: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
   },
-  cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: 16,
+  actionContainer: {
+    marginLeft: 16,
   },
   generateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
   },
-  generateButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
+  disabledButton: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
+
+export default CertificateCard;

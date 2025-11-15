@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
 import BackgroundDecorativo from "../../shared/components/BackgroundDecorativo";
 import UserHeader from "../../shared/components/UserHeader";
+import SafeLayout from "../../shared/components/SafeLayout";
 import { colors } from "../../shared/constants/theme";
 
 const { width, height } = Dimensions.get("window");
@@ -46,22 +47,6 @@ export default function EntrenadorDashboard() {
       route: "asistencia",
       color: "#8B5CF6",
       lightColor: "#8B5CF6",
-    },
-    {
-      title: "Mensualidad",
-      icon: "card",
-      description: "Estado de cuenta",
-      route: "mensualidad",
-      color: "#EC4899",
-      lightColor: "#EC4899",
-    },
-    {
-      title: "Certificados",
-      icon: "document-text",
-      description: "Documentos oficiales",
-      route: "certificado",
-      color: "#3B82F6",
-      lightColor: "#3B82F6",
     },
     {
       title: "Ajustes",
@@ -209,7 +194,7 @@ export default function EntrenadorDashboard() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeLayout>
       <BackgroundDecorativo />
 
       <ScrollView
@@ -425,7 +410,7 @@ export default function EntrenadorDashboard() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeLayout>
   );
 }
 

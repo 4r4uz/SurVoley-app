@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
 import SafeLayout from "../../shared/components/SafeLayout";
 import AdminFormModal, { FormSection } from "../../shared/components/AdminFormModal";
-import { colors } from "../../shared/constants/theme";
+import { SkeletonLoader, SkeletonList } from "../../shared/components/SkeletonLoader";
+import { colors, commonStyles, spacing } from "../../shared/constants/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -92,26 +93,50 @@ export default function GestionAsistenciasScreen() {
   const [actividadSeleccionada, setActividadSeleccionada] = useState<Actividad | null>(null);
   const [asistenciasModal, setAsistenciasModal] = useState<any[]>([]);
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Cargar entrenamientos y eventos
+      // Calcular fecha límite (últimos 3 meses para optimizar carga inicial)
+      const fechaLimite = new Date();
+      fechaLimite.setMonth(fechaLimite.getMonth() - 3);
+
+      // Cargar entrenamientos y eventos recientes con asistencias incluidas
       const [entrenamientosRes, eventosRes, jugadoresRes] = await Promise.all([
         supabase.from("Entrenamiento").select(`
           *,
           entrenador:Usuarios (
             nombre,
             apellido
+          ),
+          asistencias:Asistencia (
+            *,
+            jugador:Jugador (
+              usuarios:Usuarios (
+                nombre,
+                apellido,
+                correo
+              )
+            )
           )
-        `).order("fecha_hora", { ascending: false }),
+        `).gte("fecha_hora", fechaLimite.toISOString()).order("fecha_hora", { ascending: false }),
         supabase.from("Evento").select(`
           *,
           organizador:Usuarios (
             nombre,
             apellido
+          ),
+          asistencias:Asistencia (
+            *,
+            jugador:Jugador (
+              usuarios:Usuarios (
+                nombre,
+                apellido,
+                correo
+              )
+            )
           )
-        `).order("fecha_hora", { ascending: false }),
+        `).gte("fecha_hora", fechaLimite.toISOString()).order("fecha_hora", { ascending: false }),
         supabase.from("Jugador").select(`
           id_jugador,
           usuarios:Usuarios (
@@ -130,7 +155,7 @@ export default function GestionAsistenciasScreen() {
       const eventos = eventosRes.data || [];
       setJugadores(jugadoresRes.data || []);
 
-      // Combinar entrenamientos y eventos en actividades
+      // Combinar entrenamientos y eventos en actividades con asistencias ya incluidas
       const actividadesData: Actividad[] = [
         ...entrenamientos.map(ent => ({
           id: ent.id_entrenamiento,
@@ -141,7 +166,7 @@ export default function GestionAsistenciasScreen() {
           descripcion: ent.descripcion,
           duracion_minutos: ent.duracion_minutos,
           organizador: ent.entrenador?.nombre ? `${ent.entrenador.nombre} ${ent.entrenador.apellido}` : undefined,
-          asistencias: [],
+          asistencias: ent.asistencias || [],
           estado: determinarEstadoActividad(ent.fecha_hora, ent.duracion_minutos),
         })),
         ...eventos.map(evt => ({
@@ -152,31 +177,10 @@ export default function GestionAsistenciasScreen() {
           ubicacion: evt.ubicacion,
           descripcion: `${evt.tipo_evento} - ${evt.titulo}`,
           organizador: evt.organizador?.nombre ? `${evt.organizador.nombre} ${evt.organizador.apellido}` : undefined,
-          asistencias: [],
+          asistencias: evt.asistencias || [],
           estado: determinarEstadoActividad(evt.fecha_hora),
         }))
       ];
-
-      // Cargar asistencias para cada actividad
-      for (const actividad of actividadesData) {
-        const asistenciasRes = await supabase
-          .from("Asistencia")
-          .select(`
-            *,
-            jugador:Jugador (
-              usuarios:Usuarios (
-                nombre,
-                apellido,
-                correo
-              )
-            )
-          `)
-          .eq(actividad.tipo === 'entrenamiento' ? 'id_entrenamiento' : 'id_evento', actividad.id);
-
-        if (!asistenciasRes.error) {
-          actividad.asistencias = asistenciasRes.data || [];
-        }
-      }
 
       setActividades(actividadesData);
     } catch (error) {
@@ -185,7 +189,7 @@ export default function GestionAsistenciasScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const determinarEstadoActividad = (fechaHora: string, duracionMinutos?: number): 'pasado' | 'en_curso' | 'futuro' => {
     const ahora = new Date();
@@ -208,7 +212,7 @@ export default function GestionAsistenciasScreen() {
     cargarDatos();
   }, []);
 
-  const actividadesFiltradas = actividades.filter((actividad) => {
+  const actividadesFiltradas = useMemo(() => actividades.filter((actividad) => {
     const matchesSearch = actividad.titulo.toLowerCase().includes(searchText.toLowerCase()) ||
                          actividad.descripcion?.toLowerCase().includes(searchText.toLowerCase()) ||
                          actividad.organizador?.toLowerCase().includes(searchText.toLowerCase());
@@ -216,7 +220,7 @@ export default function GestionAsistenciasScreen() {
     const matchesTipo = selectedTipo === "todos" || actividad.tipo === selectedTipo;
 
     return matchesSearch && matchesTipo;
-  });
+  }), [actividades, searchText, selectedTipo]);
 
   const abrirModalAsistencia = (actividad: Actividad) => {
     setActividadSeleccionada(actividad);
@@ -419,37 +423,95 @@ export default function GestionAsistenciasScreen() {
     });
   };
 
-  const calcularEstadisticas = () => {
+  const estadisticas = useMemo(() => {
     const actividadesEnCurso = actividades.filter(a => a.estado === 'en_curso').length;
     const actividadesFuturas = actividades.filter(a => a.estado === 'futuro').length;
     const actividadesPasadas = actividades.filter(a => a.estado === 'pasado').length;
 
     return { actividadesEnCurso, actividadesFuturas, actividadesPasadas };
-  };
-
-  const estadisticas = calcularEstadisticas();
+  }, [actividades]);
 
   // Separar actividades por estado
-  const actividadesEnCursoYFuturas = actividades
+  const actividadesEnCursoYFuturas = useMemo(() => actividadesFiltradas
     .filter(a => a.estado === 'en_curso' || a.estado === 'futuro')
     .sort((a, b) => {
       // En curso primero, luego futuras ordenadas por fecha
       if (a.estado === 'en_curso' && b.estado !== 'en_curso') return -1;
       if (a.estado !== 'en_curso' && b.estado === 'en_curso') return 1;
       return new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime();
-    });
+    }), [actividadesFiltradas]);
 
-  const actividadesPasadas = actividades
+  const actividadesPasadas = useMemo(() => actividadesFiltradas
     .filter(a => a.estado === 'pasado')
-    .sort((a, b) => new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime()); // Más recientes primero
+    .sort((a, b) => new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime()), [actividadesFiltradas]); // Más recientes primero
 
   if (loading) {
     return (
       <SafeLayout>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando actividades...</Text>
-        </View>
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <View style={styles.header}>
+              <View style={styles.titleContainer}>
+                <Ionicons name="calendar" size={28} color="#10B981" />
+                <View>
+                  <SkeletonLoader width={200} height={24} />
+                  <SkeletonLoader width={250} height={16} style={{ marginTop: 4 }} />
+                </View>
+              </View>
+            </View>
+
+            {/* Quick Stats - Skeleton */}
+            <View style={styles.simpleStats}>
+              <View style={styles.statRow}>
+                <View style={[styles.simpleStatCard, styles.statActive]}>
+                  <SkeletonLoader width={24} height={24} borderRadius={12} />
+                  <SkeletonLoader width={30} height={20} style={{ marginTop: 4, marginBottom: 2 }} />
+                  <SkeletonLoader width={40} height={11} />
+                </View>
+                <View style={[styles.simpleStatCard, styles.statUpcoming]}>
+                  <SkeletonLoader width={24} height={24} borderRadius={12} />
+                  <SkeletonLoader width={30} height={20} style={{ marginTop: 4, marginBottom: 2 }} />
+                  <SkeletonLoader width={50} height={11} />
+                </View>
+              </View>
+              <View style={[styles.simpleStatCard, styles.statCompleted]}>
+                <SkeletonLoader width={24} height={24} borderRadius={12} />
+                <SkeletonLoader width={30} height={20} style={{ marginTop: 4, marginBottom: 2 }} />
+                <SkeletonLoader width={60} height={11} />
+              </View>
+            </View>
+          </View>
+
+          {/* Filters Section */}
+          <View style={styles.filtersSection}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#6B7280" />
+              <SkeletonLoader width="80%" height={16} style={{ marginLeft: 12 }} />
+            </View>
+
+            <View style={styles.typeFiltersContainer}>
+              <SkeletonLoader width={100} height={14} style={{ marginBottom: 12 }} />
+              <View style={styles.typeFilters}>
+                <SkeletonLoader width={80} height={40} borderRadius={25} />
+                <SkeletonLoader width={100} height={40} borderRadius={25} />
+                <SkeletonLoader width={80} height={40} borderRadius={25} />
+              </View>
+            </View>
+          </View>
+
+          {/* Activities List Skeleton */}
+          <View style={styles.activitiesSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="list" size={20} color={colors.primary} />
+                <SkeletonLoader width={120} height={18} />
+              </View>
+            </View>
+
+            <SkeletonList count={6} cardHeight={120} />
+          </View>
+        </ScrollView>
       </SafeLayout>
     );
   }
@@ -838,20 +900,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    ...commonStyles.searchContainer,
+    marginBottom: spacing.lg,
   },
   searchInput: {
     flex: 1,
@@ -901,10 +951,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionHeader: {
-    flexDirection: "row",
+    ...commonStyles.sectionHeader,
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
   },
   sectionTitleContainer: {
     flexDirection: "row",
@@ -1121,16 +1169,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   typeFilter: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    backgroundColor: "#FFFFFF",
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    gap: 6,
+    ...commonStyles.typeFilter,
+    marginRight: spacing.sm,
   },
   typeFilterActive: {
     backgroundColor: colors.primary,

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../constants/theme";
+import { colors, commonStyles, spacing } from "../constants/theme";
 
 interface AttendanceItem {
   id: string;
@@ -13,203 +13,188 @@ interface AttendanceItem {
   estado_asistencia: "Presente" | "Ausente" | "Justificado" | "Sin registro";
   descripcion?: string;
   titulo?: string;
+  jugador?: {
+    nombre: string;
+    apellido: string;
+  };
 }
 
 interface AttendanceCardProps {
   item: AttendanceItem;
 }
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return {
-    day: date.getDate().toString(),
-    month: date.toLocaleDateString("es-ES", { month: "short" }),
-    weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
-    time: date.toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  };
-};
+//Componente para mostrar un registro individual de asistencia
 
-export default function AttendanceCard({ item }: AttendanceCardProps) {
-  const getStatusConfig = (status: string) => {
+export const AttendanceCard = React.memo(({ item }: AttendanceCardProps) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Presente":
-        return {
-          icon: "checkmark-circle",
-          color: colors.success,
-          bg: "#F0FDF4",
-          borderColor: colors.success,
-          badgeText: "PRESENTE",
-        };
+        return colors.success;
       case "Ausente":
-        return {
-          icon: "close-circle",
-          color: colors.error,
-          bg: "#FEF2F2",
-          borderColor: colors.error,
-          badgeText: "AUSENTE",
-        };
+        return colors.error;
       case "Justificado":
-        return {
-          icon: "time",
-          color: colors.warning,
-          bg: "#FFFBEB",
-          borderColor: colors.warning,
-          badgeText: "JUSTIFICADO",
-        };
+        return colors.warning;
       default:
-        return {
-          icon: "help-circle",
-          color: "#6B7280",
-          bg: "#F9FAFB",
-          borderColor: "#6B7280",
-          badgeText: "SIN REGISTRO",
-        };
+        return colors.text.tertiary;
     }
   };
 
-  const statusConfig = getStatusConfig(item.estado_asistencia);
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Presente":
+        return "checkmark-circle";
+      case "Ausente":
+        return "close-circle";
+      case "Justificado":
+        return "time";
+      default:
+        return "help-circle";
+    }
+  };
 
-  const dateInfo = item.fecha_asistencia
-    ? formatDate(item.fecha_asistencia)
-    : item.fecha_hora
-    ? formatDate(item.fecha_hora)
-    : {
-        day: 0,
-        month: "???",
-        weekday: "---",
-        time: "--:--",
-      };
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
-    <View
-      style={[
-        styles.attendanceCard,
-        {
-          backgroundColor: statusConfig.bg,
-          borderColor: statusConfig.borderColor,
-        },
-      ]}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.dateSection}>
-          <Text style={styles.dateDay}>{dateInfo.day}</Text>
-          <Text style={styles.dateMonth}>{dateInfo.month}</Text>
-          <Text style={styles.dateWeekday}>{dateInfo.weekday}</Text>
-        </View>
-
-        <View style={styles.cardContent}>
-          <Text style={styles.sessionName}>
-            {item.titulo || item.descripcion || item.tipo_evento || "Sesión de entrenamiento"}
-          </Text>
-
-          <View style={styles.sessionMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="time" size={14} color="#6B7280" />
-              <Text style={styles.metaText}>{dateInfo.time}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="location" size={14} color="#6B7280" />
-              <Text style={styles.metaText}>
-                {item.lugar || item.ubicacion || "Lugar no especificado"}
-              </Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons
-                name={item.tipo_evento === "Entrenamiento" ? "basketball" : "trophy"}
-                size={14}
-                color="#6B7280"
-              />
-              <Text style={styles.metaText}>
-                {item.tipo_evento || "Actividad"}
-              </Text>
-            </View>
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <View style={styles.statusContainer}>
+          <View
+            style={[
+              styles.statusIcon,
+              { backgroundColor: getStatusColor(item.estado_asistencia) + "20" }
+            ]}
+          >
+            <Ionicons
+              name={getStatusIcon(item.estado_asistencia) as any}
+              size={16}
+              color={getStatusColor(item.estado_asistencia)}
+            />
           </View>
+          <Text
+            style={[
+              styles.statusText,
+              { color: getStatusColor(item.estado_asistencia) }
+            ]}
+          >
+            {item.estado_asistencia}
+          </Text>
         </View>
+        <Text style={styles.date}>
+          {item.fecha_asistencia ? formatDate(item.fecha_asistencia) : 'Sin fecha'}
+        </Text>
+      </View>
 
-        <View
-          style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}
-        >
-          <Ionicons name={statusConfig.icon as any} size={14} color="#FFFFFF" />
-          <Text style={styles.statusBadgeText}>{statusConfig.badgeText}</Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>
+          {item.titulo || item.tipo_evento || 'Actividad'}
+        </Text>
+
+        {item.descripcion && (
+          <Text style={styles.description} numberOfLines={2}>
+            {item.descripcion}
+          </Text>
+        )}
+
+        <View style={styles.details}>
+          {item.lugar && (
+            <View style={styles.detailItem}>
+              <Ionicons name="location" size={14} color={colors.text.secondary} />
+              <Text style={styles.detailText}>{item.lugar}</Text>
+            </View>
+          )}
+
+          {item.fecha_hora && (
+            <View style={styles.detailItem}>
+              <Ionicons name="time" size={14} color={colors.text.secondary} />
+              <Text style={styles.detailText}>{formatTime(item.fecha_hora)}</Text>
+            </View>
+          )}
+
+          {item.jugador && (
+            <View style={styles.detailItem}>
+              <Ionicons name="person" size={14} color={colors.text.secondary} />
+              <Text style={styles.detailText}>
+                {item.jugador.nombre} {item.jugador.apellido}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </View>
   );
-}
+});
+
+AttendanceCard.displayName = "AttendanceCard";
 
 const styles = StyleSheet.create({
-  attendanceCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+  card: {
+    ...commonStyles.card,
+    marginBottom: spacing.sm,
   },
-  cardHeader: {
+  header: {
+    ...commonStyles.cardHeader,
+    justifyContent: "space-between",
+  },
+  statusContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: spacing.sm,
   },
-  dateSection: {
-    alignItems: "center",
-    marginRight: 16,
-    minWidth: 50,
+  statusIcon: {
+    ...commonStyles.smallIconContainer,
   },
-  dateDay: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#1F2937",
-  },
-  dateMonth: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontWeight: "700",
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
     textTransform: "uppercase",
-    marginTop: 2,
+    letterSpacing: 0.5,
   },
-  dateWeekday: {
-    fontSize: 10,
-    color: "#9CA3AF",
-    marginTop: 2,
+  date: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    fontWeight: "500",
   },
-  cardContent: {
-    flex: 1,
+  content: {
+    ...commonStyles.cardContent,
   },
-  sessionName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 8,
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text.primary,
+    lineHeight: 20,
   },
-  sessionMeta: {
-    gap: 6,
+  description: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 18,
   },
-  metaItem: {
+  details: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    flexWrap: "wrap",
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
-  metaText: {
-    fontSize: 13,
-    color: "#6B7280",
+  detailItem: {
+    ...commonStyles.detailItem,
   },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    color: "#FFFFFF",
-    fontWeight: "700",
-    textTransform: "uppercase",
+  detailText: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    fontWeight: "500",
   },
 });

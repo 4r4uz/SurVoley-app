@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
 import BackgroundDecorativo from "../../shared/components/BackgroundDecorativo";
 import UserHeader from "../../shared/components/UserHeader";
+import SafeLayout from "../../shared/components/SafeLayout";
 import { colors } from "../../shared/constants/theme";
 
 const { width, height } = Dimensions.get("window");
@@ -152,6 +153,14 @@ export default function AdminDashboard() {
       lightColor: "#DC2626",
     },
     {
+      title: "Mensualidades",
+      icon: "cash",
+      description: "Generación automática de mensualidades",
+      route: "mensualidades",
+      color: "#10B981",
+      lightColor: "#10B981",
+    },
+    {
       title: "Reportes",
       icon: "stats-chart",
       description: "Reportes y análisis del sistema",
@@ -159,6 +168,7 @@ export default function AdminDashboard() {
       color: "#7C3AED",
       lightColor: "#7C3AED",
     },
+
     {
       title: "Entrenamientos y Eventos",
       icon: "football",
@@ -183,21 +193,23 @@ export default function AdminDashboard() {
 
   if (cargando) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingAnimation}>
-            <Ionicons name="shield" size={32} color="#1E40AF" />
+      <SafeLayout>
+        <View style={[styles.container, styles.centered]}>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingAnimation}>
+              <Ionicons name="shield" size={32} color="#1E40AF" />
+            </View>
+            <Text style={styles.loadingText}>
+              Cargando panel administrativo...
+            </Text>
           </View>
-          <Text style={styles.loadingText}>
-            Cargando panel administrativo...
-          </Text>
         </View>
-      </View>
+      </SafeLayout>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeLayout>
       <BackgroundDecorativo />
 
       <ScrollView
@@ -388,7 +400,7 @@ export default function AdminDashboard() {
           </View>
         </Animated.View>
       </ScrollView>
-    </View>
+    </SafeLayout>
   );
 }
 

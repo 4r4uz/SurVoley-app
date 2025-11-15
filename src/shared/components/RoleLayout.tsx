@@ -1,60 +1,74 @@
-import { Stack, Redirect } from "expo-router";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { Slot } from "expo-router";
 import { useAuth } from "../../core/auth/AuthContext";
-import SafeLayout from "./SafeLayout";
+import { colors } from "../constants/theme";
 import LoadingScreen from "./LoadingScreen";
+import SafeLayout from "./SafeLayout";
 
 interface RoleLayoutProps {
-  allowedRole: "admin" | "jugador" | "apoderado" | "entrenador";
+  allowedRole: string;
 }
 
+//Componente layout que verifica permisos de rol antes de renderizar
+
 export default function RoleLayout({ allowedRole }: RoleLayoutProps) {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
+    return <LoadingScreen message="Verificando permisos..." />;
+  }
+
+  if (!user) {
     return (
       <SafeLayout>
-        <LoadingScreen message="Cargando..." />
+        <View style={styles.container}>
+          <Text style={styles.errorText}>Usuario no autenticado</Text>
+        </View>
       </SafeLayout>
     );
   }
 
-  // Si no está autenticado, no renderizar nada para evitar conflictos con navegación manual
-  if (!isAuthenticated) {
-    return null;
+  if (user.rol !== allowedRole) {
+    return (
+      <SafeLayout>
+        <View style={styles.container}>
+          <Text style={styles.errorText}>
+            No tienes permisos para acceder a esta sección
+          </Text>
+          <Text style={styles.subText}>
+            Rol requerido: {allowedRole}
+          </Text>
+          <Text style={styles.subText}>
+            Tu rol: {user.rol}
+          </Text>
+        </View>
+      </SafeLayout>
+    );
   }
 
-  // Si el rol no coincide, redirigir al login
-  if (user?.rol !== allowedRole) {
-    return <Redirect href="/login" />;
-  }
-
-  // Configurar rutas según el rol
-  const getRoutesForRole = (role: string) => {
-    switch (role) {
-      case "admin":
-        return [
-          <Stack.Screen key="index" name="index" />,
-          <Stack.Screen key="usuarios" name="usuarios" />,
-          <Stack.Screen key="asistencias" name="asistencias" />,
-          <Stack.Screen key="pagos" name="pagos" />,
-          <Stack.Screen key="reportes" name="reportes" />,
-          <Stack.Screen key="entrenamientos" name="entrenamientos" />,
-        ];
-      default:
-        return [
-          <Stack.Screen key="index" name="index" />,
-          <Stack.Screen key="asistencia" name="asistencia" />,
-          <Stack.Screen key="certificado" name="certificado" />,
-          <Stack.Screen key="mensualidad" name="mensualidad" />,
-        ];
-    }
-  };
-
-  return (
-    <SafeLayout>
-      <Stack screenOptions={{ headerShown: false }}>
-        {getRoutesForRole(allowedRole)}
-      </Stack>
-    </SafeLayout>
-  );
+  return <Slot />;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 10,
+    fontWeight: "600",
+  },
+  subText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: "center",
+    marginBottom: 5,
+  },
+});

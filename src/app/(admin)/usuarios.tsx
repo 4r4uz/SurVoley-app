@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
 import SafeLayout from "../../shared/components/SafeLayout";
 import AdminFormModal, { FormSection, FormField } from "../../shared/components/AdminFormModal";
+import { SkeletonLoader, SkeletonList } from "../../shared/components/SkeletonLoader";
 import { colors } from "../../shared/constants/theme";
 
 const { width } = Dimensions.get("window");
@@ -60,7 +61,7 @@ export default function GestionUsuariosScreen() {
     estado_cuenta: true,
   });
 
-  const cargarUsuarios = async () => {
+  const cargarUsuarios = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -76,13 +77,13 @@ export default function GestionUsuariosScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     cargarUsuarios();
   }, []);
 
-  const usuariosFiltrados = usuarios.filter((usuario) => {
+  const usuariosFiltrados = useMemo(() => usuarios.filter((usuario) => {
     const matchesSearch =
       usuario.nombre.toLowerCase().includes(searchText.toLowerCase()) ||
       usuario.apellido.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -91,7 +92,13 @@ export default function GestionUsuariosScreen() {
     const matchesRole = selectedRole === "todos" || usuario.rol === selectedRole;
 
     return matchesSearch && matchesRole;
-  });
+  }), [usuarios, searchText, selectedRole]);
+
+  const estadisticas = useMemo(() => ({
+    total: usuarios.length,
+    activos: usuarios.filter(u => u.estado_cuenta).length,
+    inactivos: usuarios.filter(u => !u.estado_cuenta).length,
+  }), [usuarios]);
 
   const abrirModalCrear = () => {
     setEditingUser(null);
@@ -307,10 +314,66 @@ export default function GestionUsuariosScreen() {
   if (loading) {
     return (
       <SafeLayout>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando usuarios...</Text>
-        </View>
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <View style={styles.header}>
+              <View style={styles.titleContainer}>
+                <Ionicons name="people" size={28} color="#8B5CF6" />
+                <View>
+                  <SkeletonLoader width={180} height={24} />
+                  <SkeletonLoader width={220} height={16} style={{ marginTop: 4 }} />
+                </View>
+              </View>
+            </View>
+
+            {/* Quick Stats - Skeleton */}
+            <View style={styles.quickStats}>
+              <View style={styles.quickStatCard}>
+                <SkeletonLoader width={30} height={20} style={{ marginBottom: 4 }} />
+                <SkeletonLoader width={40} height={12} />
+              </View>
+              <View style={styles.quickStatCard}>
+                <SkeletonLoader width={30} height={20} style={{ marginBottom: 4 }} />
+                <SkeletonLoader width={50} height={12} />
+              </View>
+              <View style={styles.quickStatCard}>
+                <SkeletonLoader width={30} height={20} style={{ marginBottom: 4 }} />
+                <SkeletonLoader width={60} height={12} />
+              </View>
+            </View>
+          </View>
+
+          {/* Filters Section */}
+          <View style={styles.filtersSection}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#6B7280" />
+              <SkeletonLoader width="70%" height={16} style={{ marginLeft: 12 }} />
+            </View>
+
+            <View style={styles.roleFiltersContainer}>
+              <SkeletonLoader width={120} height={14} style={{ marginBottom: 12 }} />
+              <View style={styles.roleFilters}>
+                <SkeletonLoader width={60} height={40} borderRadius={25} />
+                <SkeletonLoader width={80} height={40} borderRadius={25} />
+                <SkeletonLoader width={90} height={40} borderRadius={25} />
+                <SkeletonLoader width={110} height={40} borderRadius={25} />
+              </View>
+            </View>
+          </View>
+
+          {/* Users List Skeleton */}
+          <View style={styles.usersSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="list" size={20} color={colors.primary} />
+                <SkeletonLoader width={100} height={18} />
+              </View>
+            </View>
+
+            <SkeletonList count={8} cardHeight={100} />
+          </View>
+        </ScrollView>
       </SafeLayout>
     );
   }
@@ -335,19 +398,15 @@ export default function GestionUsuariosScreen() {
           {/* Quick Stats */}
           <View style={styles.quickStats}>
             <View style={styles.quickStatCard}>
-              <Text style={styles.quickStatNumber}>{usuarios.length}</Text>
+              <Text style={styles.quickStatNumber}>{estadisticas.total}</Text>
               <Text style={styles.quickStatLabel}>Total</Text>
             </View>
             <View style={styles.quickStatCard}>
-              <Text style={styles.quickStatNumber}>
-                {usuarios.filter(u => u.estado_cuenta).length}
-              </Text>
+              <Text style={styles.quickStatNumber}>{estadisticas.activos}</Text>
               <Text style={styles.quickStatLabel}>Activos</Text>
             </View>
             <View style={styles.quickStatCard}>
-              <Text style={styles.quickStatNumber}>
-                {usuarios.filter(u => !u.estado_cuenta).length}
-              </Text>
+              <Text style={styles.quickStatNumber}>{estadisticas.inactivos}</Text>
               <Text style={styles.quickStatLabel}>Inactivos</Text>
             </View>
           </View>

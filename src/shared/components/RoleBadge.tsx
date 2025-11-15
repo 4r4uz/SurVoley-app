@@ -1,83 +1,110 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, getRolColor, getRolIcon, typography } from "../constants/theme";
+import { colors, getRolColor, getRolIcon } from "../constants/theme";
 
 interface RoleBadgeProps {
   rol: string;
   size?: "sm" | "md" | "lg";
+  showIcon?: boolean;
 }
 
-export default function RoleBadge({ rol, size = "md" }: RoleBadgeProps) {
+//Componente para mostrar el rol del usuario con icono y color
+
+export default function RoleBadge({
+  rol,
+  size = "md",
+  showIcon = true
+}: RoleBadgeProps) {
   const rolColor = getRolColor(rol);
   const rolIcon = getRolIcon(rol);
+  const displayRole = rol.charAt(0).toUpperCase() + rol.slice(1);
 
-  const getRoleDisplayName = (rol: string): string => {
-    const roles: { [key: string]: string } = {
-      admin: "Administrador",
-      jugador: "Jugador",
-      entrenador: "Entrenador",
-      apoderado: "Apoderado",
-    };
-    return roles[rol] || "Usuario";
+  const sizeStyles = {
+    sm: {
+      container: styles.containerSm,
+      text: styles.textSm,
+      icon: 12,
+    },
+    md: {
+      container: styles.containerMd,
+      text: styles.textMd,
+      icon: 14,
+    },
+    lg: {
+      container: styles.containerLg,
+      text: styles.textLg,
+      icon: 16,
+    },
   };
 
-  const getSizeStyles = () => {
-    switch (size) {
-      case "sm":
-        return {
-          paddingHorizontal: 2,
-          paddingVertical: 2,
-          iconSize: 10,
-          fontSize: 9,
-          gap: 2,
-        };
-      case "lg":
-        return {
-          paddingHorizontal: 4,
-          paddingVertical: 4,
-          iconSize: 16,
-          fontSize: 14,
-          gap: 6,
-        };
-      default: // md
-        return {
-          paddingHorizontal: 6,
-          paddingVertical: 3,
-          iconSize: 12,
-          fontSize: 11,
-          gap: 3,
-        };
-    }
-  };
-
-  const sizeStyles = getSizeStyles();
+  const currentSize = sizeStyles[size];
 
   return (
-    <View style={[styles.badge, { backgroundColor: rolColor, gap: sizeStyles.gap }]}>
-      <Ionicons
-        name={rolIcon as any}
-        size={sizeStyles.iconSize}
-        color="#FFFFFF"
-      />
-      <Text style={[styles.text, { fontSize: sizeStyles.fontSize }]}>
-        {getRoleDisplayName(rol)}
-      </Text>
+    <View style={[currentSize.container, { backgroundColor: rolColor }]}>
+      {showIcon && (
+        <Ionicons
+          name={rolIcon as any}
+          size={currentSize.icon}
+          color="#FFFFFF"
+          style={styles.icon}
+        />
+      )}
+      <Text style={currentSize.text}>{displayRole}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  badge: {
+  containerSm: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: "flex-start",
     gap: 4,
   },
-  text: {
+  containerMd: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    gap: 5,
+  },
+  containerLg: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    alignSelf: "flex-start",
+    gap: 6,
+  },
+  textSm: {
+    fontSize: 10,
     color: "#FFFFFF",
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  textMd: {
+    fontSize: 11,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  textLg: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  icon: {
+    marginTop: 1,
   },
 });

@@ -8,14 +8,18 @@ import {
   Dimensions,
   Animated,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useAuth } from "../../core/auth/AuthContext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
+import { UserService } from "../../core/services";
 import BackgroundDecorativo from "../../shared/components/BackgroundDecorativo";
 import UserHeader from "../../shared/components/UserHeader";
-import { colors } from "../../shared/constants/theme";
+import { PlayerSupervisionCard } from "../../shared/components/PlayerSupervisionCard";
+import SafeLayout from "../../shared/components/SafeLayout";
+import { colors, commonStyles, spacing } from "../../shared/constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -28,10 +32,24 @@ interface NextEvent {
   esEvento: boolean;
 }
 
+interface SupervisedPlayer {
+  id_jugador: string;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  fecha_nacimiento?: string;
+  estadisticas?: {
+    asistencia: number;
+    mensualidades: number;
+    certificados: number;
+  };
+}
+
 export default function ApoderadoDashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [nextEvents, setNextEvents] = useState<NextEvent[]>([]);
+  const [supervisedPlayers, setSupervisedPlayers] = useState<SupervisedPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -55,14 +73,7 @@ export default function ApoderadoDashboard() {
       color: "#EC4899",
       lightColor: "#EC4899",
     },
-    {
-      title: "Certificados",
-      icon: "document-text",
-      description: "Documentos oficiales",
-      route: "certificado",
-      color: "#3B82F6",
-      lightColor: "#3B82F6",
-    },
+
     {
       title: "Ajustes",
       icon: "settings",
@@ -73,22 +84,33 @@ export default function ApoderadoDashboard() {
     },
   ];
 
+  // Verificar autenticación y redirigir si es necesario
   useEffect(() => {
-    fetchNextEvents();
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+  }, [authLoading, isAuthenticated, router]);
 
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideUpAnim, {
-        toValue: 0,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      fetchSupervisedPlayers();
+      fetchNextEvents();
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideUpAnim, {
+          toValue: 0,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isAuthenticated, user?.id]);
 
   const fetchNextEvents = async () => {
     try {
@@ -201,6 +223,90 @@ export default function ApoderadoDashboard() {
     return "#10B981";
   };
 
+  const fetchSupervisedPlayers = async () => {
+    try {
+      if (!user?.id) {
+        return;
+      }
+
+      // Obtener directamente el id_jugador_tutorado del apoderado
+      const { data: apoderadoData, error: apoderadoError } = await supabase
+        .from('Apoderado')
+        .select('id_jugador_tutorado')
+        .eq('id_apoderado', user.id)
+        .single();
+
+      if (apoderadoError || !apoderadoData?.id_jugador_tutorado) {
+        setSupervisedPlayers([]);
+        return;
+      }
+
+      const idJugadorTutorado = apoderadoData.id_jugador_tutorado;
+
+      // Obtener datos del jugador tutorado desde la tabla Jugador con join a Usuarios
+      const { data: playerQueryData, error: playerError } = await supabase
+        .from('Jugador')
+        .select(`
+          id_jugador,
+          Usuarios!Jugador_id_jugador_fkey (
+            id_usuario,
+            nombre,
+            apellido,
+            correo
+          )
+        `)
+        .eq('id_jugador', idJugadorTutorado)
+        .single();
+
+      if (playerError || !playerQueryData?.Usuarios) {
+        setSupervisedPlayers([]);
+        return;
+      }
+
+      // Usuarios puede ser un objeto (relación 1:1) o un array (relación 1:many)
+      const player = Array.isArray(playerQueryData.Usuarios)
+        ? playerQueryData.Usuarios[0]
+        : playerQueryData.Usuarios;
+
+      // Calcular estadísticas
+      const [asistenciasData, mensualidadesData] = await Promise.all([
+        supabase
+          .from("Asistencia")
+          .select("estado_asistencia")
+          .eq("id_jugador", idJugadorTutorado),
+        supabase
+          .from("Mensualidad")
+          .select("estado_pago")
+          .eq("id_jugador", idJugadorTutorado)
+      ]);
+
+      const totalAsistencias = asistenciasData.data?.length || 0;
+      const asistenciasPresentes = asistenciasData.data?.filter(a =>
+        a.estado_asistencia === "Presente" || a.estado_asistencia === "Justificado"
+      ).length || 0;
+      const asistenciaRate = totalAsistencias > 0 ? Math.round((asistenciasPresentes / totalAsistencias) * 100) : 0;
+
+      const mensualidadesPagadas = mensualidadesData.data?.filter(m => m.estado_pago === "Pagado").length || 0;
+
+      const playerData: SupervisedPlayer = {
+        id_jugador: idJugadorTutorado,
+        nombre: player.nombre,
+        apellido: player.apellido,
+        correo: player.correo,
+        estadisticas: {
+          asistencia: asistenciaRate,
+          mensualidades: mensualidadesPagadas,
+          certificados: 0, // Ya no se usan certificados
+        }
+      };
+
+      setSupervisedPlayers([playerData]);
+    } catch (error) {
+      console.error("Error fetching supervised players:", error);
+      setSupervisedPlayers([]);
+    }
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Buenos días";
@@ -208,8 +314,23 @@ export default function ApoderadoDashboard() {
     return "Buenas noches";
   };
 
+  // Mostrar pantalla de carga mientras se verifica autenticación
+  if (authLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.apoderado} />
+        <Text style={styles.loadingText}>Verificando sesión...</Text>
+      </View>
+    );
+  }
+
+  // No mostrar nada si no está autenticado (se redirigirá)
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeLayout>
       <BackgroundDecorativo />
 
       <ScrollView
@@ -366,6 +487,56 @@ export default function ApoderadoDashboard() {
           )}
         </Animated.View>
 
+        {/* Supervised Players Section */}
+        <Animated.View
+          style={[
+            styles.playersSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="people" size={20} color={colors.apoderado} />
+              <Text style={styles.sectionTitle}>Jugadores Supervisados</Text>
+            </View>
+          </View>
+
+          {supervisedPlayers.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="person-add-outline" size={44} color="#9CA3AF" />
+              </View>
+              <Text style={styles.emptyTitle}>No hay jugadores asignados</Text>
+              <Text style={styles.emptyDescription}>
+                Los jugadores supervisados aparecerán aquí una vez asignados por el administrador
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.playersContainer}>
+              {supervisedPlayers.map((player) => (
+                <View key={player.id_jugador} style={styles.playerInfoCard}>
+                  <View style={styles.playerInfo}>
+                    <View style={[commonStyles.iconContainer, { backgroundColor: colors.apoderado }]}>
+                      <Text style={styles.avatarText}>
+                        {player.nombre.charAt(0)}{player.apellido.charAt(0)}
+                      </Text>
+                    </View>
+                    <View style={styles.playerDetails}>
+                      <Text style={styles.playerName}>
+                        {player.nombre} {player.apellido}
+                      </Text>
+                      <Text style={styles.playerRole}>Jugador Supervisado</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </Animated.View>
+
         <Animated.View
           style={[
             styles.actionsSection,
@@ -425,7 +596,7 @@ export default function ApoderadoDashboard() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeLayout>
   );
 }
 
@@ -434,6 +605,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   scrollView: {
     flex: 1,
   },
@@ -441,6 +617,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   eventsSection: {
+    marginBottom: 28,
+  },
+  playersSection: {
     marginBottom: 28,
   },
   actionsSection: {
@@ -472,6 +651,10 @@ const styles = StyleSheet.create({
   },
   eventsContainer: {
     gap: 14,
+    paddingHorizontal: 28,
+  },
+  playersContainer: {
+    gap: spacing.md,
     paddingHorizontal: 28,
   },
   eventCard: {
@@ -684,5 +867,41 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 30,
+  },
+  playerInfoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1.5,
+    borderColor: "#F3F4F6",
+  },
+  playerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  playerRole: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    fontWeight: "500",
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.text.inverse,
+  },
+  playerDetails: {
+    flex: 1,
+  },
+  playerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text.primary,
+    marginBottom: 2,
   },
 });

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { commonStyles, colors, typography } from "../constants/theme";
 
 interface StatsCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -27,35 +28,22 @@ StatsCard.displayName = "StatsCard";
 
 const styles = StyleSheet.create({
   statsCard: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 12,
+    ...commonStyles.whiteCard,
     alignItems: "center",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
   },
   statsIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
+    ...commonStyles.iconContainer,
     marginBottom: 8,
   },
   statsValue: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#1F2937",
+    color: colors.text.primary,
     marginBottom: 4,
   },
   statsLabel: {
     fontSize: 11,
-    color: "#6B7280",
+    color: colors.text.secondary,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.5,

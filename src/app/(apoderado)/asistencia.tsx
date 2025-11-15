@@ -13,6 +13,7 @@ import { useAuth } from "../../core/auth/AuthContext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
+import { UserService } from "../../core/services";
 import SafeLayout from "../../shared/components/SafeLayout";
 import UserHeader from "../../shared/components/UserHeader";
 import { colors } from "../../shared/constants/theme";
@@ -45,42 +46,72 @@ export default function ApoderadoAsistenciaScreen() {
     try {
       setLoading(true);
 
-      // Obtener los hijos del apoderado (jugadores asociados)
-      const { data: hijos, error: errorHijos } = await supabase
-        .from("Apoderado_Jugador")
-        .select("id_jugador")
-        .eq("id_apoderado", user?.id);
-
-      if (errorHijos) throw errorHijos;
-
-      if (!hijos || hijos.length === 0) {
+      if (!user?.id) {
         setAsistencias([]);
         return;
       }
 
-      const idsHijos = hijos.map(h => h.id_jugador);
+      // Obtener directamente el id_jugador_tutorado del apoderado
+      const { data: apoderadoData, error: apoderadoError } = await supabase
+        .from('Apoderado')
+        .select('id_jugador_tutorado')
+        .eq('id_apoderado', user.id)
+        .single();
 
-      // Obtener asistencias de los hijos
-      const { data, error } = await supabase
+      if (apoderadoError || !apoderadoData?.id_jugador_tutorado) {
+        setAsistencias([]);
+        return;
+      }
+
+      const idJugadorTutorado = apoderadoData.id_jugador_tutorado;
+
+      // Obtener asistencias del jugador tutorado
+      const { data: asistenciasData, error } = await supabase
         .from("Asistencia")
-        .select(`
-          *,
-          jugador:Usuarios!Asistencia_id_jugador_fkey (
-            nombre,
-            apellido
-          ),
-          entrenamiento:Entrenamiento!Asistencia_id_entrenamiento_fkey (
-            fecha_hora,
-            lugar,
-            descripcion
-          )
-        `)
-        .in("id_jugador", idsHijos)
+        .select("*")
+        .eq("id_jugador", idJugadorTutorado)
         .order("fecha_asistencia", { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      setAsistencias(data || []);
+
+      // Si hay asistencias, obtener datos adicionales
+      if (asistenciasData && asistenciasData.length > 0) {
+        const asistenciasConDatos = await Promise.all(
+          asistenciasData.map(async (asistencia) => {
+            // Obtener datos del entrenamiento si existe
+            let entrenamiento = null;
+            if (asistencia.id_entrenamiento) {
+              const { data: entData } = await supabase
+                .from("Entrenamiento")
+                .select("fecha_hora, lugar, descripcion")
+                .eq("id_entrenamiento", asistencia.id_entrenamiento)
+                .single();
+              entrenamiento = entData;
+            }
+
+            // Obtener datos del evento si existe
+            let evento = null;
+            if (asistencia.id_evento) {
+              const { data: evtData } = await supabase
+                .from("Evento")
+                .select("titulo, tipo_evento, fecha_hora, ubicacion")
+                .eq("id_evento", asistencia.id_evento)
+                .single();
+              evento = evtData;
+            }
+
+            return {
+              ...asistencia,
+              entrenamiento,
+              evento,
+            };
+          })
+        );
+        setAsistencias(asistenciasConDatos);
+      } else {
+        setAsistencias([]);
+      }
     } catch (error) {
       console.error("Error cargando asistencias:", error);
       Alert.alert("Error", "No se pudieron cargar las asistencias");
@@ -90,8 +121,10 @@ export default function ApoderadoAsistenciaScreen() {
   };
 
   useEffect(() => {
-    cargarAsistencias();
-  }, []);
+    if (user?.id) {
+      cargarAsistencias();
+    }
+  }, [user?.id]);
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {

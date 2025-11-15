@@ -370,9 +370,6 @@ const LoginScreen: React.FC = () => {
                     disabled={loading}
                   />
                 </View>
-                <TouchableOpacity>
-                  <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
-                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
@@ -637,11 +634,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: '500',
   },
-  forgotPassword: {
-    fontSize: 14,
-    color: colors.primaryLight,
-    fontWeight: '600',
-  },
+
   button: {
     backgroundColor: colors.text.primary,
     padding: spacing.xl,

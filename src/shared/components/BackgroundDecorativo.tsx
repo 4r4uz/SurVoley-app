@@ -1,54 +1,51 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Dimensions } from "react-native";
 import { colors } from "../constants/theme";
 
-//Componente de fondo decorativo con bubbles
+const { width, height } = Dimensions.get("window");
+
+//Componente decorativo con círculos de fondo
 
 export default function BackgroundDecorativo() {
   return (
-    <View style={styles.background}>
-      <View style={[styles.bubble, styles.bubble1]} />
-      <View style={[styles.bubble, styles.bubble2]} />
-      <View style={[styles.bubble, styles.bubble3]} />
-      <View style={[styles.bubble, styles.bubble4]} />
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={[styles.circle, styles.circle1]} />
+      <View style={[styles.circle, styles.circle2]} />
+      <View style={[styles.circle, styles.circle3]} />
+      <View style={[styles.circle, styles.circle4]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  bubble: {
+  circle: {
     position: "absolute",
     borderRadius: 500,
+    backgroundColor: colors.surface,
+    opacity: 0.7,
   },
-  bubble1: {
-    width: 220,
-    height: 220,
-    top: -80,
-    right: -60,
-    backgroundColor: colors.bubble1,
+  circle1: {
+    width: width * 0.8,
+    height: width * 0.8,
+    top: -width * 0.4,
+    right: -width * 0.2,
   },
-  bubble2: {
-    width: 180,
-    height: 180,
-    bottom: 120,
-    left: -70,
-    backgroundColor: colors.bubble2,
+  circle2: {
+    width: width * 0.6,
+    height: width * 0.6,
+    bottom: -width * 0.3,
+    left: -width * 0.2,
   },
-  bubble3: {
-    width: 120,
-    height: 120,
-    top: "35%",
-    right: 40,
-    backgroundColor: colors.bubble3,
+  circle3: {
+    width: width * 0.4,
+    height: width * 0.4,
+    top: height * 0.3,
+    left: -width * 0.15,
   },
-  bubble4: {
-    width: 90,
-    height: 90,
-    bottom: 200,
-    right: 100,
-    backgroundColor: colors.bubble4,
+  circle4: {
+    width: width * 0.3,
+    height: width * 0.3,
+    bottom: height * 0.1,
+    right: -width * 0.1,
   },
 });

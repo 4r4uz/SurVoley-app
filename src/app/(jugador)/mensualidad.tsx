@@ -40,49 +40,7 @@ interface PaymentMethod {
 
 const MONTO_FIJO = 20000;
 
-const verificarYMensualidadActual = async (idJugador: string) => {
-  try {
-    const ahora = new Date();
-    const mesActual = (ahora.getMonth() + 1).toString().padStart(2, "0");
-    const anioActual = ahora.getFullYear();
 
-    const { data: existe, error } = await supabase
-      .from("Mensualidad")
-      .select("id_mensualidad")
-      .eq("id_jugador", idJugador)
-      .eq("mes_referencia", mesActual)
-      .eq("anio_referencia", anioActual)
-      .single();
-
-    if (error && error.code !== "PGRST116") {
-      console.error("Error verificando mensualidad:", error);
-      return;
-    }
-
-    if (!existe) {
-      const fechaVencimiento = new Date(anioActual, ahora.getMonth(), 10);
-
-      const { error: errorInsert } = await supabase.from("Mensualidad").insert([
-        {
-          id_jugador: idJugador,
-          monto: MONTO_FIJO,
-          fecha_vencimiento: fechaVencimiento.toISOString().split("T")[0],
-          fecha_pago: null,
-          metodo_pago: null,
-          estado_pago: "Pendiente",
-          mes_referencia: mesActual,
-          anio_referencia: anioActual,
-        },
-      ]);
-
-      if (errorInsert) {
-        console.error("Error creando mensualidad:", errorInsert);
-      }
-    }
-  } catch (error) {
-    console.error("Error en verificarYMensualidadActual:", error);
-  }
-};
 
 const PaymentCard = React.memo(
   ({
@@ -721,8 +679,6 @@ export default function PagosScreen() {
       }
 
       const idJugador = jugadorData.id_jugador;
-
-      await verificarYMensualidadActual(idJugador);
 
       const { data, error } = await supabase
         .from("Mensualidad")

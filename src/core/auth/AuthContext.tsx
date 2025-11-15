@@ -7,6 +7,7 @@ import {
   validateUser,
   USER_ROLES
 } from "./types";
+import { generarMensualidadesAutomaticas } from "../services";
 
 const USER_STORAGE_KEY = "currentUser";
 const SESSION_CHECK_KEY = "sessionChecked";
@@ -14,6 +15,7 @@ const REMEMBER_ME_KEY = "rememberMe";
 
 let globalSessionChecked = false;
 let cachedUser: User | null = null;
+let mensualidadesGeneradas = false;
 
 export const useAuth = (): UseAuthReturn => {
   const [authState, setAuthState] = useState({
@@ -155,6 +157,20 @@ export const useAuth = (): UseAuthReturn => {
     }
   };
 
+  const ejecutarGeneracionAutomatica = useCallback(async () => {
+    if (mensualidadesGeneradas) {
+      return;
+    }
+
+    try {
+      mensualidadesGeneradas = true;
+      await generarMensualidadesAutomaticas();
+    } catch (error) {
+      console.error("Error en generación automática de mensualidades:", error);
+      mensualidadesGeneradas = false; // Reset para permitir reintento
+    }
+  }, []);
+
   const setUser = useCallback(async (
     user: User,
     rememberMe: boolean = false
@@ -176,11 +192,14 @@ export const useAuth = (): UseAuthReturn => {
           isAuthenticated: true,
         });
       }
+
+      // Ejecutar generación automática de mensualidades después de login exitoso
+      ejecutarGeneracionAutomatica();
     } catch (error) {
       console.error("Error setting user:", error);
       throw error;
     }
-  }, []);
+  }, [ejecutarGeneracionAutomatica]);
 
   const signOut = useCallback(async (): Promise<void> => {
     try {

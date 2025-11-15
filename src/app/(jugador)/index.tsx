@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
 import BackgroundDecorativo from "../../shared/components/BackgroundDecorativo";
 import UserHeader from "../../shared/components/UserHeader";
+import SafeLayout from "../../shared/components/SafeLayout";
 import { colors } from "../../shared/constants/theme";
 
 const { width, height } = Dimensions.get("window");
@@ -209,7 +210,7 @@ export default function JugadorDashboard() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeLayout>
       <BackgroundDecorativo />
 
       <ScrollView
@@ -425,7 +426,7 @@ export default function JugadorDashboard() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeLayout>
   );
 }
 

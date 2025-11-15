@@ -14,7 +14,7 @@ import { useAuth } from "../../core/auth/AuthContext";
 import { supabase } from "../../core/supabase/supabaseClient";
 import { StatsCard } from "../../shared/components/StatsCard";
 import NextSessionCard from "../../shared/components/NextSessionCard";
-import AttendanceCard from "../../shared/components/AttendanceCard";
+import { AttendanceCard } from "../../shared/components/AttendanceCard";
 import { colors } from "../../shared/constants/theme";
 
 interface AttendanceItem {
