@@ -20,6 +20,9 @@ export interface User {
   rol: UserRole;
   nombre: string;
   apellido?: string;
+  telefono?: string;
+  fecha_nacimiento?: string;
+  direccion?: string;
 }
 
 export interface AuthState {
@@ -43,6 +46,7 @@ export interface UseAuthReturn extends AuthState {
   signIn?: (credentials: LoginCredentials) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User, rememberMe?: boolean) => Promise<void>;
+  updateUser: (user: Partial<User>) => Promise<void>;
 }
 
 // validar usuario

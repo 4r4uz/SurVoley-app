@@ -15,6 +15,7 @@ import { useAuth } from "../../core/auth/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../core/supabase/supabaseClient";
 import SafeLayout from "../../shared/components/SafeLayout";
+import UserHeader from "../../shared/components/UserHeader";
 import DatePickerComponent from "../../shared/components/DatePicker";
 import { colors } from "../../shared/constants/theme";
 
@@ -29,10 +30,6 @@ interface Entrenamiento {
   descripcion: string;
   created_at: string;
   updated_at: string;
-  entrenador?: {
-    nombre: string;
-    apellido: string;
-  };
 }
 
 interface Evento {
@@ -40,17 +37,14 @@ interface Evento {
   titulo: string;
   tipo_evento: string;
   fecha_hora: string;
+  hora_inicio: string;
+  hora_fin: string;
   ubicacion: string;
-  id_organizador: string;
   created_at: string;
   updated_at: string;
-  organizador?: {
-    nombre: string;
-    apellido: string;
-  };
 }
 
-export default function EntrenamientosEventosScreen() {
+export default function EntrenadorEntrenamientosScreen() {
   const { user } = useAuth();
   const [entrenamientos, setEntrenamientos] = useState<Entrenamiento[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -80,6 +74,8 @@ export default function EntrenamientosEventosScreen() {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fechaHora, setFechaHora] = useState<Date | null>(null);
+  const [horaInicio, setHoraInicio] = useState('');
+  const [horaFin, setHoraFin] = useState('');
   const [lugar, setLugar] = useState('');
   const [duracionMinutos, setDuracionMinutos] = useState('');
   const [tipoEvento, setTipoEvento] = useState('');
@@ -99,17 +95,18 @@ export default function EntrenamientosEventosScreen() {
   ];
 
   const cargarEntrenamientos = async (page: number = 1, append: boolean = false) => {
+    if (!user?.id) return; // Don't load if user is not available
+
     try {
       if (!append) setLoading(true);
       else setLoadingMore(true);
 
       let query = supabase
         .from("Entrenamiento")
-        .select(`
-          *,
-          entrenador:Usuarios!id_entrenador(nombre, apellido)
-        `, { count: 'exact' })
-        .order("fecha_hora", { ascending: false })
+        .select("*")
+        .eq("id_entrenador", user.id) // Solo entrenamientos del entrenador actual
+        .gte("fecha_hora", new Date().toISOString()) // Solo entrenamientos futuros
+        .order("fecha_hora", { ascending: true }) // Ordenar por fecha ascendente (próximos primero)
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
       // Aplicar filtros
@@ -146,17 +143,21 @@ export default function EntrenamientosEventosScreen() {
   };
 
   const cargarEventos = async (page: number = 1, append: boolean = false) => {
+    if (!user?.id) return; // Don't load if user is not available
+
     try {
       if (!append) setLoading(true);
       else setLoadingMore(true);
 
+      // Obtener el inicio del día actual
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       let query = supabase
         .from("Evento")
-        .select(`
-          *,
-          organizador:Usuarios!id_organizador(nombre, apellido)
-        `, { count: 'exact' })
-        .order("fecha_hora", { ascending: false })
+        .select("*")
+        .gte("fecha_hora", today.toISOString()) // Eventos desde el inicio del día actual
+        .order("fecha_hora", { ascending: true }) // Ordenar por fecha ascendente (próximos primero)
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
       // Aplicar filtros
@@ -234,12 +235,14 @@ export default function EntrenamientosEventosScreen() {
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [user?.id]); // Reload when user becomes available
 
   const resetForm = () => {
     setTitulo('');
     setDescripcion('');
     setFechaHora(null);
+    setHoraInicio('');
+    setHoraFin('');
     setLugar('');
     setDuracionMinutos('');
     setTipoEvento('');
@@ -266,6 +269,8 @@ export default function EntrenamientosEventosScreen() {
       setTitulo(evento.titulo);
       setTipoEvento(evento.tipo_evento);
       setFechaHora(new Date(evento.fecha_hora));
+      setHoraInicio(evento.hora_inicio);
+      setHoraFin(evento.hora_fin);
       setLugar(evento.ubicacion);
     } else {
       resetForm();
@@ -291,7 +296,7 @@ export default function EntrenamientosEventosScreen() {
         fecha_hora: fechaHora.toISOString(),
         lugar,
         duracion_minutos: duracionNum,
-        id_entrenador: user?.id // Usar el ID del usuario actual como entrenador
+        id_entrenador: user?.id
       };
 
       if (editingEntrenamiento) {
@@ -321,7 +326,7 @@ export default function EntrenamientosEventosScreen() {
   };
 
   const guardarEvento = async () => {
-    if (!titulo || !tipoEvento || !fechaHora || !lugar) {
+    if (!titulo || !tipoEvento || !fechaHora || !lugar || !horaInicio || !horaFin) {
       Alert.alert("Error", "Por favor complete todos los campos");
       return;
     }
@@ -331,8 +336,9 @@ export default function EntrenamientosEventosScreen() {
         titulo,
         tipo_evento: tipoEvento,
         fecha_hora: fechaHora.toISOString(),
-        ubicacion: lugar,
-        id_organizador: user?.id // Usar el ID del usuario actual como organizador
+        hora_inicio: horaInicio,
+        hora_fin: horaFin,
+        ubicacion: lugar
       };
 
       if (editingEvento) {
@@ -429,15 +435,11 @@ export default function EntrenamientosEventosScreen() {
     });
   };
 
-  const formatearMonto = (monto: number) => {
-    return `$${monto.toLocaleString("es-CL")}`;
-  };
-
   if (loading) {
     return (
       <SafeLayout>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.entrenador} />
           <Text style={styles.loadingText}>Cargando datos...</Text>
         </View>
       </SafeLayout>
@@ -447,18 +449,12 @@ export default function EntrenamientosEventosScreen() {
   return (
     <SafeLayout>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Ionicons name="football" size={28} color={colors.primary} />
-            <View>
-              <Text style={styles.title}>Entrenamientos y Eventos</Text>
-              <Text style={styles.subtitle}>
-                Gestiona todos los entrenamientos y eventos del club
-              </Text>
-            </View>
-          </View>
-        </View>
+        <UserHeader
+          user={user}
+          greeting="Gestión de Entrenamientos y Eventos"
+          avatarColor={colors.entrenador}
+          roleText="Entrenador"
+        />
 
         {/* Tab Selector */}
         <View style={styles.tabContainer}>
@@ -466,7 +462,7 @@ export default function EntrenamientosEventosScreen() {
             style={[styles.tab, activeTab === 'entrenamientos' && styles.tabActive]}
             onPress={() => setActiveTab('entrenamientos')}
           >
-            <Ionicons name="football" size={20} color={activeTab === 'entrenamientos' ? "#FFFFFF" : colors.primary} />
+            <Ionicons name="football" size={20} color={activeTab === 'entrenamientos' ? "#FFFFFF" : colors.entrenador} />
             <Text style={[styles.tabText, activeTab === 'entrenamientos' && styles.tabTextActive]}>
               Entrenamientos ({entrenamientos.length})
             </Text>
@@ -475,7 +471,7 @@ export default function EntrenamientosEventosScreen() {
             style={[styles.tab, activeTab === 'eventos' && styles.tabActive]}
             onPress={() => setActiveTab('eventos')}
           >
-            <Ionicons name="trophy" size={20} color={activeTab === 'eventos' ? "#FFFFFF" : colors.primary} />
+            <Ionicons name="trophy" size={20} color={activeTab === 'eventos' ? "#FFFFFF" : colors.entrenador} />
             <Text style={[styles.tabText, activeTab === 'eventos' && styles.tabTextActive]}>
               Eventos ({eventos.length})
             </Text>
@@ -532,7 +528,7 @@ export default function EntrenamientosEventosScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <Ionicons name="football" size={20} color="#8B5CF6" />
-                <Text style={styles.sectionTitle}>Entrenamientos</Text>
+                <Text style={styles.sectionTitle}>Mis Entrenamientos</Text>
               </View>
               <TouchableOpacity
                 style={styles.addButton}
@@ -547,16 +543,13 @@ export default function EntrenamientosEventosScreen() {
                 <View style={styles.itemHeader}>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemTitle}>Entrenamiento</Text>
-                    <Text style={styles.itemSubtitle}>
-                      {entrenamiento.entrenador ? `${entrenamiento.entrenador.nombre} ${entrenamiento.entrenador.apellido}` : 'Sin entrenador'}
-                    </Text>
                   </View>
                   <View style={styles.itemActions}>
                     <TouchableOpacity
                       style={styles.editButton}
                       onPress={() => abrirModalEntrenamiento(entrenamiento)}
                     >
-                      <Ionicons name="pencil" size={16} color={colors.primary} />
+                      <Ionicons name="pencil" size={16} color={colors.entrenador} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.deleteButton}
@@ -592,7 +585,7 @@ export default function EntrenamientosEventosScreen() {
               <View style={styles.loadMoreContainer}>
                 {loadingMore ? (
                   <View style={styles.loadingMoreContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ActivityIndicator size="small" color={colors.entrenador} />
                     <Text style={styles.loadingMoreText}>Cargando más...</Text>
                   </View>
                 ) : (
@@ -678,7 +671,7 @@ export default function EntrenamientosEventosScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <Ionicons name="trophy" size={20} color="#F59E0B" />
-                <Text style={styles.sectionTitle}>Eventos</Text>
+                <Text style={styles.sectionTitle}>Mis Eventos</Text>
               </View>
               <TouchableOpacity
                 style={styles.addButton}
@@ -700,7 +693,7 @@ export default function EntrenamientosEventosScreen() {
                       style={styles.editButton}
                       onPress={() => abrirModalEvento(evento)}
                     >
-                      <Ionicons name="pencil" size={16} color={colors.primary} />
+                      <Ionicons name="pencil" size={16} color={colors.entrenador} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.deleteButton}
@@ -717,14 +710,14 @@ export default function EntrenamientosEventosScreen() {
                     <Text style={styles.detailText}>{formatearFecha(evento.fecha_hora)}</Text>
                   </View>
                   <View style={styles.detailItem}>
-                    <Ionicons name="location" size={14} color="#6B7280" />
-                    <Text style={styles.detailText}>{evento.ubicacion}</Text>
+                    <Ionicons name="time" size={14} color="#6B7280" />
+                    <Text style={styles.detailText}>
+                      {evento.hora_inicio} - {evento.hora_fin}
+                    </Text>
                   </View>
                   <View style={styles.detailItem}>
-                    <Ionicons name="person" size={14} color="#6B7280" />
-                    <Text style={styles.detailText}>
-                      {evento.organizador ? `${evento.organizador.nombre} ${evento.organizador.apellido}` : 'Sin organizador'}
-                    </Text>
+                    <Ionicons name="location" size={14} color="#6B7280" />
+                    <Text style={styles.detailText}>{evento.ubicacion}</Text>
                   </View>
                 </View>
               </View>
@@ -734,7 +727,7 @@ export default function EntrenamientosEventosScreen() {
               <View style={styles.loadMoreContainer}>
                 {loadingMore ? (
                   <View style={styles.loadingMoreContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ActivityIndicator size="small" color={colors.entrenador} />
                     <Text style={styles.loadingMoreText}>Cargando más...</Text>
                   </View>
                 ) : (
@@ -902,11 +895,11 @@ export default function EntrenamientosEventosScreen() {
                 <View style={styles.formRow}>
                   <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
                     <DatePickerComponent
-                      label="Fecha y Hora"
+                      label="Fecha"
                       value={fechaHora}
                       onChange={setFechaHora}
-                      placeholder="Seleccionar fecha y hora"
-                      mode="datetime"
+                      placeholder="Seleccionar fecha"
+                      mode="date"
                       minimumDate={new Date()}
                     />
                   </View>
@@ -917,6 +910,29 @@ export default function EntrenamientosEventosScreen() {
                       value={lugar}
                       onChangeText={setLugar}
                       placeholder="Ej: Estadio Municipal"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.formRow}>
+                  <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={styles.formLabel}>Hora Inicio</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={horaInicio}
+                      onChangeText={setHoraInicio}
+                      placeholder="09:00"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                  <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                    <Text style={styles.formLabel}>Hora Fin</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={horaFin}
+                      onChangeText={setHoraFin}
+                      placeholder="11:00"
                       placeholderTextColor="#9CA3AF"
                     />
                   </View>
@@ -955,162 +971,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#6B7280",
   },
-  header: {
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#1F2937",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-  },
-  stats: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#1F2937",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  infoSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  infoCard: {
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
-  jugadoresSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 16,
-  },
-  jugadorCard: {
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  jugadorInfo: {
-    flex: 1,
-  },
-  jugadorName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 4,
-  },
-  jugadorEmail: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  montoBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  montoText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    color: "#374151",
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  actions: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  generateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary,
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  generateButtonDisabled: {
-    opacity: 0.6,
-  },
-  generateButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  // New styles for EntrenamientosEventosScreen
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
   tabContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
@@ -1128,7 +988,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.entrenador,
   },
   tabText: {
     fontSize: 14,
@@ -1153,11 +1013,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.entrenador,
     padding: 12,
     borderRadius: 8,
     gap: 4,
@@ -1291,7 +1156,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   tipoOptionSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.entrenador,
   },
   tipoOptionText: {
     fontSize: 14,
@@ -1309,7 +1174,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.entrenador,
     padding: 16,
     borderRadius: 12,
     gap: 8,
@@ -1371,7 +1236,7 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.entrenador,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1404,7 +1269,7 @@ const styles = StyleSheet.create({
   loadMoreButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.entrenador,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1423,5 +1288,21 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 14,
     marginTop: 8,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    padding: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    color: "#374151",
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import * as SecureStore from 'expo-secure-store';
-import { supabase } from "../supabase/supabaseClient";
 import {
   User,
   UseAuthReturn,
@@ -69,7 +68,7 @@ export const useAuth = (): UseAuthReturn => {
       await SecureStore.setItemAsync(SESSION_CHECK_KEY, "true");
     } catch (error) {
       console.error("Error almacenando usuario:", error);
-      throw new Error("No se pudo guardar la sesión de forma segura");
+      throw new Error("No se pudo guardar la sesiรณn de forma segura");
     }
   };
 
@@ -100,10 +99,11 @@ export const useAuth = (): UseAuthReturn => {
     }
 
     try {
+      // Verificar usuario almacenado en SecureStore
       const user = await getStoredUser();
 
       if (user) {
-        console.log("Usuario encontrado en SecureStore (recordarme activado):", user);
+        console.log("Usuario encontrado en SecureStore:", user.email);
 
         if (validateUser(user)) {
           cachedUser = user;
@@ -121,7 +121,7 @@ export const useAuth = (): UseAuthReturn => {
           throw new Error("Datos de usuario corruptos o inválidos");
         }
       } else {
-        console.log("No hay sesión guardada o recordarme desactivado");
+        console.log("No hay sesión guardada");
         globalSessionChecked = true;
         if (isMounted.current) {
           setAuthState({
@@ -166,7 +166,7 @@ export const useAuth = (): UseAuthReturn => {
       mensualidadesGeneradas = true;
       await generarMensualidadesAutomaticas();
     } catch (error) {
-      console.error("Error en generación automática de mensualidades:", error);
+      console.error("Error en generaciรณn automรกtica de mensualidades:", error);
       mensualidadesGeneradas = false; // Reset para permitir reintento
     }
   }, []);
@@ -177,7 +177,7 @@ export const useAuth = (): UseAuthReturn => {
   ): Promise<void> => {
     try {
       if (!validateUser(user)) {
-        throw new Error("Estructura de usuario inválida");
+        throw new Error("Estructura de usuario invรกlida");
       }
 
       await storeUserSecurely(user, rememberMe);
@@ -193,7 +193,7 @@ export const useAuth = (): UseAuthReturn => {
         });
       }
 
-      // Ejecutar generación automática de mensualidades después de login exitoso
+      // Ejecutar generaciรณn automรกtica de mensualidades despuรฉs de login exitoso
       ejecutarGeneracionAutomatica();
     } catch (error) {
       console.error("Error setting user:", error);
@@ -201,8 +201,43 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [ejecutarGeneracionAutomatica]);
 
+  const updateUser = useCallback(async (userUpdates: Partial<User>): Promise<void> => {
+    try {
+      if (!authState.user) {
+        throw new Error("No hay usuario autenticado");
+      }
+
+      const updatedUser = { ...authState.user, ...userUpdates };
+
+      if (!validateUser(updatedUser)) {
+        throw new Error("Datos de usuario invรกlidos");
+      }
+
+      // Actualizar en SecureStore si estรก activado
+      const rememberMe = await shouldRememberMe();
+      if (rememberMe) {
+        await storeUserSecurely(updatedUser, true);
+      }
+
+      cachedUser = updatedUser;
+
+      if (isMounted.current) {
+        setAuthState(prev => ({
+          ...prev,
+          user: updatedUser,
+        }));
+      }
+
+      console.log("Usuario actualizado correctamente");
+    } catch (error) {
+      console.error("Error actualizando usuario:", error);
+      throw error;
+    }
+  }, [authState.user]);
+
   const signOut = useCallback(async (): Promise<void> => {
     try {
+      // Limpiar almacenamiento local
       await clearStorage();
 
       if (isMounted.current) {
@@ -224,5 +259,6 @@ export const useAuth = (): UseAuthReturn => {
     ...authState,
     signOut,
     setUser,
+    updateUser,
   };
 };

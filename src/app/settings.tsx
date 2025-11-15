@@ -52,7 +52,7 @@ export default function SettingsScreen() {
   };
 
   const handleEditProfile = () => {
-    Alert.alert("Editar Perfil", "Funcionalidad en desarrollo");
+    router.push("/edit-profile");
   };
 
   const handleContactEmail = () => {
@@ -80,8 +80,7 @@ export default function SettingsScreen() {
           title: "Cambiar Contraseña",
           subtitle: "Actualiza tu contraseña de acceso",
           icon: "lock-closed",
-          action: () =>
-            Alert.alert("Cambiar Contraseña", "Funcionalidad en desarrollo"),
+          action: () => router.push("/change-password"),
         },
       ],
     },
@@ -179,9 +178,9 @@ export default function SettingsScreen() {
         </TouchableOpacity>
 
         <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>SURVOLEY APP v1.0.0</Text>
+          <Text style={styles.appVersion}>SURVOLEY APP v1.0</Text>
           <Text style={styles.appCopyright}>
-            © 2024 Club Deportivo. Todos los derechos reservados
+            © 2025 Club Deportivo. Todos los derechos reservados.
           </Text>
         </View>
       </ScrollView>

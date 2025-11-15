@@ -100,7 +100,7 @@ const AdminFormModal: React.FC<AdminFormModalProps> = ({
               </Text>
             </View>
             <TextInput
-              style={[styles.textInput, hasError && styles.inputError]}
+              style={[styles.textInput, hasError ? styles.inputError : null]}
               placeholder={field.placeholder}
               value={field.value}
               onChangeText={field.onChange}

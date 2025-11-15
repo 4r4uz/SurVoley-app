@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -44,9 +44,9 @@ const LoginScreen: React.FC = () => {
   const { user, isAuthenticated, setUser } = useAuth();
   const router = useRouter();
 
-  const fadeAnim = useState(new Animated.Value(0))[0];
-  const slideUpAnim = useState(new Animated.Value(30))[0];
-  const scaleAnim = useState(new Animated.Value(0.9))[0];
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideUpAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -272,7 +272,7 @@ const LoginScreen: React.FC = () => {
                 <TextInput
                   style={[
                     styles.input,
-                    validationErrors.email && styles.inputError,
+                    validationErrors.email ? styles.inputError : null,
                   ]}
                   placeholder="tu@email.com"
                   placeholderTextColor={colors.text.tertiary}
@@ -307,7 +307,7 @@ const LoginScreen: React.FC = () => {
                     style={[
                       styles.input,
                       styles.passwordInput,
-                      validationErrors.password && styles.inputError,
+                      validationErrors.password ? styles.inputError : null,
                     ]}
                     placeholder="••••••••"
                     placeholderTextColor={colors.text.tertiary}

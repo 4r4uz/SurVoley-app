@@ -408,10 +408,9 @@ export default function ApoderadoDashboard() {
                 );
 
                 return (
-                  <TouchableOpacity
+                  <View
                     key={event.id}
                     style={styles.eventCard}
-                    activeOpacity={0.8}
                   >
                     <View
                       style={[
@@ -472,15 +471,7 @@ export default function ApoderadoDashboard() {
                         </Text>
                       </View>
                     </View>
-
-                    <View style={styles.eventArrow}>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color="#D1D5DB"
-                      />
-                    </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>

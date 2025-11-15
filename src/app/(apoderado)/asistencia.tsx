@@ -41,6 +41,8 @@ export default function ApoderadoAsistenciaScreen() {
   const router = useRouter();
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth());
+  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
 
   const cargarAsistencias = async () => {
     try {
@@ -64,6 +66,15 @@ export default function ApoderadoAsistenciaScreen() {
       }
 
       const idJugadorTutorado = apoderadoData.id_jugador_tutorado;
+
+      // Obtener información del jugador tutorado
+      const { data: jugadorData, error: jugadorError } = await supabase
+        .from("Usuarios")
+        .select("nombre, apellido")
+        .eq("id_usuario", idJugadorTutorado)
+        .single();
+
+      if (jugadorError) throw jugadorError;
 
       // Obtener asistencias del jugador tutorado
       const { data: asistenciasData, error } = await supabase
@@ -103,6 +114,7 @@ export default function ApoderadoAsistenciaScreen() {
 
             return {
               ...asistencia,
+              jugador: jugadorData,
               entrenamiento,
               evento,
             };
@@ -156,15 +168,43 @@ export default function ApoderadoAsistenciaScreen() {
   };
 
   const calcularEstadisticas = () => {
-    const total = asistencias.length;
-    const presentes = asistencias.filter(a => a.estado_asistencia === "Presente").length;
-    const ausentes = asistencias.filter(a => a.estado_asistencia === "Ausente").length;
-    const justificados = asistencias.filter(a => a.estado_asistencia === "Justificado").length;
+    // Filtrar asistencias por mes seleccionado
+    const asistenciasFiltradas = asistencias.filter(asistencia => {
+      const fechaAsistencia = new Date(asistencia.fecha_asistencia);
+      return fechaAsistencia.getMonth() === mesSeleccionado &&
+             fechaAsistencia.getFullYear() === anioSeleccionado;
+    });
+
+    const total = asistenciasFiltradas.length;
+    const presentes = asistenciasFiltradas.filter(a => a.estado_asistencia === "Presente").length;
+    const ausentes = asistenciasFiltradas.filter(a => a.estado_asistencia === "Ausente").length;
+    const justificados = asistenciasFiltradas.filter(a => a.estado_asistencia === "Justificado").length;
 
     return { total, presentes, ausentes, justificados };
   };
 
   const estadisticas = calcularEstadisticas();
+
+  const meses = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const cambiarMes = (incremento: number) => {
+    let nuevoMes = mesSeleccionado + incremento;
+    let nuevoAnio = anioSeleccionado;
+
+    if (nuevoMes > 11) {
+      nuevoMes = 0;
+      nuevoAnio += 1;
+    } else if (nuevoMes < 0) {
+      nuevoMes = 11;
+      nuevoAnio -= 1;
+    }
+
+    setMesSeleccionado(nuevoMes);
+    setAnioSeleccionado(nuevoAnio);
+  };
 
   if (loading) {
     return (
@@ -186,6 +226,27 @@ export default function ApoderadoAsistenciaScreen() {
           avatarColor={colors.apoderado}
           roleText="Apoderado"
         />
+
+        {/* Selector de Mes */}
+        <View style={styles.monthSelector}>
+          <TouchableOpacity
+            style={styles.monthButton}
+            onPress={() => cambiarMes(-1)}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.apoderado} />
+          </TouchableOpacity>
+          <View style={styles.monthDisplay}>
+            <Text style={styles.monthText}>
+              {meses[mesSeleccionado]} {anioSeleccionado}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.monthButton}
+            onPress={() => cambiarMes(1)}
+          >
+            <Ionicons name="chevron-forward" size={20} color={colors.apoderado} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.stats}>
           <View style={styles.statCard}>
@@ -214,55 +275,67 @@ export default function ApoderadoAsistenciaScreen() {
             </TouchableOpacity>
           </View>
 
-          {asistencias.map((asistencia) => (
-            <View key={asistencia.id_asistencia} style={styles.asistenciaCard}>
-              <View style={styles.asistenciaHeader}>
-                <View style={styles.jugadorInfo}>
-                  <Text style={styles.jugadorName}>
-                    {asistencia.jugador?.nombre} {asistencia.jugador?.apellido}
-                  </Text>
-                  <Text style={styles.entrenamientoText}>
-                    {asistencia.entrenamiento?.descripcion || "Entrenamiento"}
-                  </Text>
+          {asistencias
+            .filter(asistencia => {
+              const fechaAsistencia = new Date(asistencia.fecha_asistencia);
+              return fechaAsistencia.getMonth() === mesSeleccionado &&
+                     fechaAsistencia.getFullYear() === anioSeleccionado;
+            })
+            .map((asistencia) => (
+              <View key={asistencia.id_asistencia} style={styles.asistenciaCard}>
+                <View style={styles.asistenciaHeader}>
+                  <View style={styles.jugadorInfo}>
+                    <Text style={styles.jugadorName}>
+                      {asistencia.jugador?.nombre} {asistencia.jugador?.apellido}
+                    </Text>
+                    <Text style={styles.entrenamientoText}>
+                      {asistencia.entrenamiento?.descripcion || "Entrenamiento"}
+                    </Text>
+                  </View>
+                  <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(asistencia.estado_asistencia) }]}>
+                    <Ionicons name={getEstadoIcon(asistencia.estado_asistencia) as any} size={12} color="#FFFFFF" />
+                    <Text style={styles.estadoText}>{asistencia.estado_asistencia}</Text>
+                  </View>
                 </View>
-                <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(asistencia.estado_asistencia) }]}>
-                  <Ionicons name={getEstadoIcon(asistencia.estado_asistencia) as any} size={12} color="#FFFFFF" />
-                  <Text style={styles.estadoText}>{asistencia.estado_asistencia}</Text>
-                </View>
-              </View>
 
-              <View style={styles.asistenciaContent}>
-                <View style={styles.fechaInfo}>
-                  <Ionicons name="calendar" size={14} color="#6B7280" />
-                  <Text style={styles.fechaText}>
-                    {formatDate(asistencia.fecha_asistencia)}
-                  </Text>
+                <View style={styles.asistenciaContent}>
+                  <View style={styles.fechaInfo}>
+                    <Ionicons name="calendar" size={14} color="#6B7280" />
+                    <Text style={styles.fechaText}>
+                      {formatDate(asistencia.fecha_asistencia)}
+                    </Text>
+                  </View>
+                  {asistencia.entrenamiento?.lugar && (
+                    <View style={styles.lugarInfo}>
+                      <Ionicons name="location" size={14} color="#6B7280" />
+                      <Text style={styles.lugarText}>{asistencia.entrenamiento.lugar}</Text>
+                    </View>
+                  )}
                 </View>
-                {asistencia.entrenamiento?.lugar && (
-                  <View style={styles.lugarInfo}>
-                    <Ionicons name="location" size={14} color="#6B7280" />
-                    <Text style={styles.lugarText}>{asistencia.entrenamiento.lugar}</Text>
+
+                {asistencia.observaciones && (
+                  <View style={styles.observacionContainer}>
+                    <Ionicons name="chatbubble" size={14} color="#6B7280" />
+                    <Text style={styles.observacionText} numberOfLines={2}>
+                      {asistencia.observaciones}
+                    </Text>
                   </View>
                 )}
               </View>
+            ))}
 
-              {asistencia.observaciones && (
-                <View style={styles.observacionContainer}>
-                  <Ionicons name="chatbubble" size={14} color="#6B7280" />
-                  <Text style={styles.observacionText} numberOfLines={2}>
-                    {asistencia.observaciones}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))}
-
-          {asistencias.length === 0 && (
+          {asistencias
+            .filter(asistencia => {
+              const fechaAsistencia = new Date(asistencia.fecha_asistencia);
+              return fechaAsistencia.getMonth() === mesSeleccionado &&
+                     fechaAsistencia.getFullYear() === anioSeleccionado;
+            })
+            .length === 0 && (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={48} color="#D1D5DB" />
               <Text style={styles.emptyTitle}>No hay asistencias</Text>
               <Text style={styles.emptyDescription}>
-                No se encontraron registros de asistencia para tus hijos
+                No se encontraron registros de asistencia para {meses[mesSeleccionado].toLowerCase()} {anioSeleccionado}
               </Text>
             </View>
           )}
@@ -286,6 +359,28 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: "#6B7280",
+  },
+  monthSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 16,
+  },
+  monthButton: {
+    padding: 8,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+  },
+  monthDisplay: {
+    flex: 1,
+    alignItems: "center",
+  },
+  monthText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.apoderado,
   },
   stats: {
     flexDirection: "row",

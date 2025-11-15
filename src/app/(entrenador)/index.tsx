@@ -41,12 +41,20 @@ export default function EntrenadorDashboard() {
 
   const features = [
     {
-      title: "Asistencias",
-      icon: "calendar",
-      description: "Control de participación",
-      route: "asistencia",
+      title: "Entrenamientos",
+      icon: "football",
+      description: "Gestionar entrenamientos y eventos",
+      route: "entrenamientos",
       color: "#8B5CF6",
       lightColor: "#8B5CF6",
+    },
+    {
+      title: "Tomar Asistencia",
+      icon: "people",
+      description: "Marcar asistencia en vivo",
+      route: "asistencia",
+      color: "#F59E0B",
+      lightColor: "#F59E0B",
     },
     {
       title: "Ajustes",
@@ -272,10 +280,9 @@ export default function EntrenadorDashboard() {
                 );
 
                 return (
-                  <TouchableOpacity
+                  <View
                     key={event.id}
                     style={styles.eventCard}
-                    activeOpacity={0.8}
                   >
                     <View
                       style={[
@@ -336,15 +343,7 @@ export default function EntrenadorDashboard() {
                         </Text>
                       </View>
                     </View>
-
-                    <View style={styles.eventArrow}>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color="#D1D5DB"
-                      />
-                    </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
