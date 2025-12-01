@@ -262,10 +262,6 @@ El proyecto incluye configuración básica en `eas.json`. Ajustar según necesid
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Abrir Pull Request
 
-## Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
-
 ## Soporte
 
 Para soporte técnico o reportes de bugs, crear un issue en el repositorio de GitHub.
